@@ -84,7 +84,7 @@ export class Game extends Phaser.Scene {
 		this.hudText.setDepth(1000);
 
 		this.pipeTimer = this.time.addEvent({
-			delay: 2500,
+			delay: 1900,
 			callback: this.addPipeRow,
 			callbackScope: this,
 			loop: true,
@@ -95,6 +95,15 @@ export class Game extends Phaser.Scene {
 
 	async update() {
 		if (this.gameOver) return;
+
+		// NOVA: Acelera pipes com score + CAP MÁXIMO 450 (evita impossível)
+		const pipeSpeed = Math.min(200 + this.score * 0.4, 400);
+		this.pipes.setVelocityX(-pipeSpeed);
+		this.zones.forEach(zone => {
+			if (zone.body) {
+				zone.body.setVelocityX(-pipeSpeed);
+			}
+		});
 
 		// 1. Observar Estado
 		const closestPipe = this.getClosestPipe();
@@ -120,6 +129,7 @@ export class Game extends Phaser.Scene {
 			}
 		}
 
+		const normalizedSpeed = pipeSpeed / 400;  // Normaliza pra [~0.44, 1.0]
 		const currentState = [
 			dx / 1058,
 			dy / 400,
@@ -127,7 +137,8 @@ export class Game extends Phaser.Scene {
 			gapHeight / 400,
 			dxNext / 1058,
 			dyNext / 400,
-			gapNext / 400
+			gapNext / 400,
+			normalizedSpeed  // NOVA FEATURE!
 		];
 
 		// 2. Calcular Recompensa de Proximidade
@@ -208,12 +219,13 @@ export class Game extends Phaser.Scene {
 			this.hitPipe();
 		}
 
-		// 8. Atualizar HUD
+		// 8. Atualizar HUD (usa o pipeSpeed já calculado)
 		const qValues = this.agent.getQValues(currentState);
 		this.hudText.setText(
 			`Gen: ${this.generation}\n` +
 			`High: ${this.highScore}\n` +
 			`Epsilon: ${epsilon.toFixed(4)}\n` +
+			`Speed: ${Math.floor(pipeSpeed)}\n` +  // Usa o mesmo valor, só arredonda pro display
 			`DX: ${Math.floor(dx)}\n` +
 			`DY: ${Math.floor(dy)}\n` +
 			`VelY: ${Math.floor(velY)}\n` +
@@ -260,10 +272,11 @@ export class Game extends Phaser.Scene {
 		const x = this.scale.width + 50;
 
 		const pipeKey = Phaser.Math.Between(0, 1) === 0 ? 'pipeGreen' : 'pipeRed';
+
 		const top = this.pipes.create(x, centerY - gap / 2, pipeKey).setOrigin(0, 1);
 		top.body.allowGravity = false;
 		top.setImmovable(true);
-		top.setVelocityX(-200);
+		top.setVelocityX(-200);  // Inicial, update() corrige
 		top.setFlipY(true);
 		top.setDisplaySize(104, 640);
 
@@ -285,7 +298,7 @@ export class Game extends Phaser.Scene {
 		const bottom = this.pipes.create(x, centerY + gap / 2, pipeKey).setOrigin(0, 0);
 		bottom.body.allowGravity = false;
 		bottom.setImmovable(true);
-		bottom.setVelocityX(-200);
+		bottom.setVelocityX(-200);  // Inicial, update() corrige
 		bottom.setDisplaySize(104, 640);
 
 		const bottomMouthTopY = centerY + gap / 2;
@@ -307,7 +320,7 @@ export class Game extends Phaser.Scene {
 		// Zone movida para o final do cano (borda trailing / direita, x + 104)
 		const zone = this.add.zone(x + 104, centerY, 2, gap);
 		this.physics.world.enable(zone);
-		zone.body.setVelocityX(-200);
+		zone.body.setVelocityX(-200);  // Inicial, update() corrige
 		zone.body.allowGravity = false;
 		zone.scored = false;
 		zone.active = true;
@@ -332,7 +345,7 @@ export class Game extends Phaser.Scene {
 		const deathReward = -50;
 		if (this.lastState !== null && this.lastAction !== null) {
 			const reward = deathReward;
-			const terminalState = [0, 0, 0, 0, 0, 0, 0];
+			const terminalState = [0, 0, 0, 0, 0, 0, 0, 0];
 			this.agent.replayBuffer.add(
 				this.lastState,
 				this.lastAction,
@@ -357,6 +370,12 @@ export class Game extends Phaser.Scene {
 		}
 		if (this.pipes) {
 			try { this.pipes.setVelocityX(0); } catch (e) { }
+		}
+		// NOVA: Para zones também
+		if (this.zones) {
+			this.zones.forEach(zone => {
+				if (zone.body) zone.body.setVelocityX(0);
+			});
 		}
 		if (this.bird && this.bird.body) {
 			try {

@@ -23,8 +23,8 @@ export const EPSILON_MIN = 0.001;
 export const EPSILON_DECAY = 0.9995;
 export const BATCH_SIZE = 64;
 export const REPLAY_BUFFER_SIZE = 30000;
-export const TARGET_UPDATE_FREQ = 500; // Atualiza target network com menos frequência
-export const LEARNING_RATE = 0.002; // Learning rate menor para convergência suave
+export const TARGET_UPDATE_FREQ = 1000; // Atualiza target network com menos frequência
+export const LEARNING_RATE = 0.001; // Learning rate menor para convergência suave
 export const TRAIN_THROTTLE = 2; // Treina a cada N passos para evitar sobrecarga
 
 /* ------------------------------------------------------------
@@ -146,9 +146,10 @@ export class DQNAgent {
   createModel() {
     const model = tf.sequential();
 
-    model.add(tf.layers.dense({ units: 256, activation: 'relu', inputShape: [7] }));
+    model.add(tf.layers.dense({ units: 512, activation: 'relu', inputShape: [8] }));  // ← Dobrei a primeira
+    model.add(tf.layers.dense({ units: 256, activation: 'relu' }));
     model.add(tf.layers.dense({ units: 128, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 64, activation: 'relu' }));
+    model.add(tf.layers.dense({ units: 64, activation: 'relu' }));  // Opcional: mantenha ou suba pra 128
     model.add(tf.layers.dense({ units: 2, activation: 'linear' }));
 
     model.compile({
@@ -164,7 +165,7 @@ export class DQNAgent {
       return Math.random() < 0.2 ? ACTION_FLAP : ACTION_IDLE;
     }
     return tf.tidy(() => {
-      const stateTensor = tf.tensor2d([state], [1, 7]);
+      const stateTensor = tf.tensor2d([state], [1, 8]);
       const qValues = this.model.predict(stateTensor);
       const action = qValues.argMax(1).dataSync()[0];
       return action;
@@ -206,8 +207,8 @@ export class DQNAgent {
     });
 
     // Create input tensors
-    const stateTensor = tf.tensor2d(states, [BATCH_SIZE, 7]);
-    const nextStateTensor = tf.tensor2d(nextStates, [BATCH_SIZE, 7]);
+    const stateTensor = tf.tensor2d(states, [BATCH_SIZE, 8]);
+    const nextStateTensor = tf.tensor2d(nextStates, [BATCH_SIZE, 8]);
     const rewardTensor = tf.tensor1d(rewards);
     const doneTensor = tf.tensor1d(dones);
 
@@ -303,7 +304,7 @@ export class DQNAgent {
 
   getQValues(state) {
     return tf.tidy(() => {
-      const stateTensor = tf.tensor2d([state], [1, 7]);
+      const stateTensor = tf.tensor2d([state], [1, 8]);
       const qValues = this.model.predict(stateTensor);
       const qArray = qValues.dataSync();
       return { [ACTION_IDLE]: qArray[0], [ACTION_FLAP]: qArray[1] };
