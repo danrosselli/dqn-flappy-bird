@@ -73,15 +73,30 @@ export class Game extends Phaser.Scene {
 			strokeThickness: 4,
 		});
 
-		this.hudText = this.add.text(16, 50, '', {
+		// HUD Text (agora no lado direito)
+		this.hudText = this.add.text(this.scale.width - 40, 30, '', {
 			fontSize: '18px',
 			fill: '#ff0',
 			stroke: '#000',
 			strokeThickness: 3,
-		});
+			align: 'left'  // Alinha o texto à direita
+		}).setOrigin(1, 0);  // Origem no canto superior direito
+		this.hudText.setDepth(1000);
+
+		// Moldura (fundo semi-transparente preto com borda)
+		this.hudBackground = this.add.rectangle(
+			this.scale.width - 20,  // Mesmo X do texto (alinhado à direita)
+			20,                     // Mesmo Y do topo do texto
+			200,                    // Largura fixa (ajuste se precisar mais/menos)
+			360,                    // Altura aproximada (cobre todo o texto)
+			0x000000,               // Cor preta
+			0.2                     // Alpha 0.6 = semi-transparente
+		).setOrigin(1, 0);          // Origem no canto superior direito
+
+		this.hudBackground.setStrokeStyle(1, 0x000000, 0.8);  // Borda preta opcional
+		this.hudBackground.setDepth(999);  // Logo atrás do texto
 
 		this.scoreText.setDepth(1000);
-		this.hudText.setDepth(1000);
 
 		this.pipeTimer = this.time.addEvent({
 			delay: 1900,
@@ -129,7 +144,6 @@ export class Game extends Phaser.Scene {
 			}
 		}
 
-		const normalizedSpeed = pipeSpeed / 400;  // Normaliza pra [~0.44, 1.0]
 		const currentState = [
 			dx / 1058,
 			dy / 400,
@@ -138,7 +152,7 @@ export class Game extends Phaser.Scene {
 			dxNext / 1058,
 			dyNext / 400,
 			gapNext / 400,
-			normalizedSpeed  // NOVA FEATURE!
+			pipeSpeed / 400  // NOVA FEATURE!
 		];
 
 		// 2. Calcular Recompensa de Proximidade
@@ -186,7 +200,7 @@ export class Game extends Phaser.Scene {
 		let actionStr = "IDLE";
 		if (action === ACTION_FLAP) {
 			actionStr = "FLAP";
-			if (this.bird.body.velocity.y > -100) {
+			if (this.bird.body.velocity.y > -180) {
 				this.flap();
 			}
 		}

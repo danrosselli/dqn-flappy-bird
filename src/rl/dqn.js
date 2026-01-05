@@ -19,7 +19,7 @@ export const ACTIONS = [ACTION_IDLE, ACTION_FLAP];
  * ------------------------------------------------------------ */
 export const gamma = 0.99; // Discount Factor
 export let epsilon = 0.5; // Exploration Rate
-export const EPSILON_MIN = 0.001;
+export const EPSILON_MIN = 0.000;
 export const EPSILON_DECAY = 0.9995;
 export const BATCH_SIZE = 64;
 export const REPLAY_BUFFER_SIZE = 30000;
