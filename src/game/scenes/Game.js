@@ -144,35 +144,50 @@ export class Game extends Phaser.Scene {
 			}
 		}
 
+		// Normalização precisa: 200 → 0.0, 400 → 1.0
+		const normalizedSpeed = (pipeSpeed - 200) / 200; // (400 - 200) = 200
+		const normalizedGap = (gapHeight - 200) / 210; // (410 - 200) = 210
+		const normalizedGapNext = (gapNext - 200) / 210;
+
 		const currentState = [
 			dx / 1058,
 			dy / 400,
 			velY / 1000,
-			gapHeight / 400,
+			normalizedGap,
 			dxNext / 1058,
 			dyNext / 400,
-			gapNext / 400,
-			pipeSpeed / 400  // NOVA FEATURE!
+			normalizedGapNext,
+			normalizedSpeed
 		];
 
-		// 2. Calcular Recompensa de Proximidade
+		// 2. Calcular Recompensa de Proximidade (nova versão mais estável)
+		const survivalReward = 0.1;  // Pequeno incentivo fixo por frame vivo
 
-		// Recompensa de progresso (viva mais = avance mais) — evite negativos
-		const progressReward = Math.max(0, dx / 1058) * 0.1;
+		// Penalidade leve por velocidade vertical extrema (evita loops infinitos de flap)
+		const velPenalty = Math.abs(velY) > 700 ? -0.05 : 0;
 
-		// Penalidade por velocidade vertical extrema (evita loops loucos) — sempre calculada
-		const velPenalty = Math.abs(velY) > 600 ? -0.2 : 0;
-
+		// Recompensa de alinhamento com o gap (só se houver pipe próximo)
 		if (closestPipe) {
 			const gap = closestPipe.height;
 			const halfGap = gap / 2;
 			const absDy = Math.abs(dy);
-			const scale = halfGap * 1.5;
-			const absDyNorm = absDy / scale;
 
-			// Recompensa de proximidade (SEM velPenalty aqui, pra evitar dupla adição)
-			this.proximityReward = 1.0 * Math.exp(-absDyNorm * 2) - 0.5;
-			this.proximityReward = Math.max(this.proximityReward, -0.5);
+			// Dinâmico: cobre metade da tela + margem pequena
+			const maxConsideredDy = this.scale.height / 2;  // 384 + 50 = 434 (boa margem)
+
+			// Normalização ampla: 0 = centro, 1 = na distância máxima considerada
+			const normalizedDy = absDy / maxConsideredDy;
+
+			// Gaussiana mais larga (sigma maior) com offset negativo
+			// sigma = 0.8 dá uma curva que cobre bem a tela
+			const sigma = 0.5;
+			const gaussian = Math.exp(-Math.pow(normalizedDy, 2) / (2 * sigma * sigma));
+
+			// Offset para permitir negativos quando muito longe
+			this.proximityReward = gaussian - 0.35;
+
+			// Opcional: clamp extremo para não dar penalidade absurda
+			this.proximityReward = Math.max(this.proximityReward, -1.0);
 		} else {
 			this.proximityReward = 0;
 		}
@@ -180,7 +195,7 @@ export class Game extends Phaser.Scene {
 		// 3. Armazenar Transição
 		if (this.lastState !== null && this.lastAction !== null) {
 			// Reward total — agora com velPenalty só uma vez
-			const reward = 1 + this.bonusReward + this.proximityReward + progressReward + velPenalty;
+			const reward = survivalReward + this.proximityReward + velPenalty + this.bonusReward;
 
 			this.agent.replayBuffer.add(
 				this.lastState,
@@ -347,7 +362,7 @@ export class Game extends Phaser.Scene {
 				z.scored = true;
 				this.score++;
 				this.scoreText.setText('Score: ' + this.score);
-				this.bonusReward = 15;
+				this.bonusReward = 10;
 			}
 		});
 	}
@@ -356,7 +371,7 @@ export class Game extends Phaser.Scene {
 		if (this.gameOver) return;
 		this.gameOver = true;
 
-		const deathReward = -50;
+		const deathReward = -20;
 		if (this.lastState !== null && this.lastAction !== null) {
 			const reward = deathReward;
 			const terminalState = [0, 0, 0, 0, 0, 0, 0, 0];
