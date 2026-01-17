@@ -3,27 +3,41 @@
  * ------------------------------------------------------------ */
 export class ReplayBuffer {
 	constructor(recentSize = 10000, reservoirSize = 40000) {
-		this.reservoirSize = reservoirSize;     // Default 50k (memória longa uniforme)
-		this.recentSize = recentSize;           // Default 10k (memória curta FIFO)
-		this.reservoirBuffer = [];              // Reservoir principal
-		this.recentBuffer = [];                 // Buffer recente separado (FIFO)
-		this.totalSeen = 0;                     // Contador pro reservoir
-		this.buffer = [];                       // Buffer "legado" pra compatibilidade com métodos antigos (FIFO simples)
+
+		this.bufferSize = 50000;
+		this.reservoirSize = reservoirSize;
+		this.recentSize = recentSize;
+
+		this.reservoirBuffer = [];
+		this.recentBuffer = [];
+		this.buffer = []; // Buffer legado
+
+		this.totalSeen = 0;
+		this.bufferPtr = 0; // Ponteiro para circular buffer
+		this.recentPtr = 0; // Ponteiro para circular buffer
 	}
 
 	add(state, action, reward, nextState, done) {
 		const transition = { state, action, reward, nextState, done };
 
-		// Legacy: Mantém o buffer antigo pra métodos como sampleLastPrioritizedAndRandom
-		if (this.buffer.length >= (this.reservoirSize + this.recentSize)) {
-			this.buffer.shift();
+		// descarta estados iniciais onde ainda não há canos na tela (dx = 1.0)
+		if (state[0] >= 1) {
+			return;
 		}
-		this.buffer.push(transition);
+		// Legacy circular buffer
+		if (this.buffer.length < this.bufferSize) {
+			this.buffer.push(transition);
+		} else {
+			this.buffer[this.bufferPtr] = transition;
+			this.bufferPtr = (this.bufferPtr + 1) % this.bufferSize;
+		}
 
-		// Recent FIFO (sempre as mais novas)
-		this.recentBuffer.push(transition);
-		if (this.recentBuffer.length > this.recentSize) {
-			this.recentBuffer.shift();
+		// Recent circular buffer
+		if (this.recentBuffer.length < this.recentSize) {
+			this.recentBuffer.push(transition);
+		} else {
+			this.recentBuffer[this.recentPtr] = transition;
+			this.recentPtr = (this.recentPtr + 1) % this.recentSize;
 		}
 
 		// Reservoir sampling (memória longa uniforme)
@@ -126,7 +140,7 @@ export class ReplayBuffer {
 
 		// === 1. Sempre adiciona 5% do batch como frames sequenciais mais recentes do recentBuffer ===
 		let remainingSize = batchSize;
-		const numSeqFrames = Math.floor(batchSize * 0.05); // 5% do batchSize (sempre)
+		const numSeqFrames = Math.floor(batchSize * 0.06); // 5% do batchSize (sempre)
 
 		if (numSeqFrames > 0 && this.recentBuffer.length > 0) {
 			// Pega os últimos N frames (mais recentes), em ordem cronológica (mais antigo primeiro)
@@ -138,19 +152,16 @@ export class ReplayBuffer {
 		}
 
 		// === 2. Preenche o resto mantendo a proporção original recent/reservoir ===
-		const recentRatio = 0.35; // Mesma proporção anterior (35% recent shuffled)
+		const recentRatio = 0.10; // Mesma proporção anterior (10% recent shuffled)
 		const numRecent = Math.floor(remainingSize * recentRatio);
 		const numReservoir = remainingSize - numRecent;
 
-		// Recent shuffled (amostras aleatórias do recentBuffer inteiro)
+		// Recent shuffled (amostras aleatórias do recentBuffer)
 		if (numRecent > 0 && this.recentBuffer.length > 0) {
-			const recentCopy = [...this.recentBuffer];
-			// Shuffle simples
-			for (let i = recentCopy.length - 1; i > 0; i--) {
-				const j = Math.floor(Math.random() * (i + 1));
-				[recentCopy[i], recentCopy[j]] = [recentCopy[j], recentCopy[i]];
+			for (let i = 0; i < numRecent; i++) {
+				const idx = Math.floor(Math.random() * this.recentBuffer.length);
+				batch.push(this.recentBuffer[idx]);
 			}
-			batch.push(...recentCopy.slice(0, numRecent));
 		}
 
 		// Reservoir (uniforme de longo prazo)
@@ -161,7 +172,7 @@ export class ReplayBuffer {
 			}
 		}
 
-		// === 3. Shuffle final do batch inteiro (exceto a parte sequencial que já está em ordem) ===
+		// === 3. Shuffle final do batch inteiro ===
 		for (let i = batch.length - 1; i > 0; i--) {
 			const j = Math.floor(Math.random() * (i + 1));
 			[batch[i], batch[j]] = [batch[j], batch[i]];
@@ -209,13 +220,10 @@ export class ReplayBuffer {
 
 		// Recent (shuffled)
 		if (numRecent > 0 && this.recentBuffer.length > 0) {
-			const recentCopy = [...this.recentBuffer];
-			// Shuffle simples
-			for (let i = recentCopy.length - 1; i > 0; i--) {
-				const j = Math.floor(Math.random() * (i + 1));
-				[recentCopy[i], recentCopy[j]] = [recentCopy[j], recentCopy[i]];
+			for (let i = 0; i < numRecent; i++) {
+				const idx = Math.floor(Math.random() * this.recentBuffer.length);
+				batch.push(this.recentBuffer[idx]);
 			}
-			batch.push(...recentCopy.slice(0, numRecent));
 		}
 
 		// Reservoir (uniforme)
@@ -250,18 +258,15 @@ export class ReplayBuffer {
 		const numRecent = Math.floor(batchSize * recentRatio);
 		const numReservoir = batchSize - numRecent;
 
-		// Amostras recentes (shuffle para não ter viés temporal forte)
+		// Amostras recentes
 		if (numRecent > 0 && this.recentBuffer.length > 0) {
-			const recentCopy = [...this.recentBuffer];
-			// Shuffle simples
-			for (let i = recentCopy.length - 1; i > 0; i--) {
-				const j = Math.floor(Math.random() * (i + 1));
-				[recentCopy[i], recentCopy[j]] = [recentCopy[j], recentCopy[i]];
+			for (let i = 0; i < numRecent; i++) {
+				const idx = Math.floor(Math.random() * this.recentBuffer.length);
+				batch.push(this.recentBuffer[idx]);
 			}
-			batch.push(...recentCopy.slice(0, numRecent));
 		}
 
-		// Amostras do reservoir (uniforme longa prazo)
+		// Amostras do reservoir
 		if (numReservoir > 0 && this.reservoirBuffer.length > 0) {
 			for (let i = 0; i < numReservoir; i++) {
 				const idx = Math.floor(Math.random() * this.reservoirBuffer.length);

@@ -7,6 +7,7 @@
 
 import * as tf from '@tensorflow/tfjs';
 import { ReplayBuffer } from './replayBuffer.js';  // ← IMPORT AQUI (ajuste path se necessário)
+import { PersistenceManager } from './persistenceManager.js';
 
 /* ------------------------------------------------------------
  * ACTIONS
@@ -32,6 +33,7 @@ export const TRAIN_THROTTLE = 2; // Treina a cada N passos para evitar sobrecarg
  * ------------------------------------------------------------ */
 export class DQNAgent {
   constructor() {
+
     // Force WebGL backend for better performance and stability
     tf.setBackend('webgl').then(() => console.log('TensorFlow.js backend: WebGL')).catch(err => console.warn('Failed to set WebGL:', err));
     this.model = this.createModel();
@@ -40,6 +42,9 @@ export class DQNAgent {
     this.replayBuffer = new ReplayBuffer();  // ← Usa defaults (50k reservoir + 10k recent)
     this.stepCount = 0;
     this.trainingInProgress = false; // Flag para evitar treinos concorrentes
+
+    // Load model from IndexedDB or create new
+    this.persistence = new PersistenceManager();
   }
 
   createModel() {
@@ -90,7 +95,7 @@ export class DQNAgent {
     this.trainingInProgress = true;
 
     // Usa o híbrido (reservoir + recent real)
-    const batch = this.replayBuffer.sampleLastPrioritizedAndRandom(BATCH_SIZE);  // Ou passe %: sampleHybrid(BATCH_SIZE, 0.4)
+    const batch = this.replayBuffer.sampleRandomBasic(BATCH_SIZE);  // Ou passe %: sampleHybrid(BATCH_SIZE, 0.4)
 
     const states = [];
     const actions = [];
@@ -160,34 +165,33 @@ export class DQNAgent {
   }
 
   async saveBrain(generation) {
-    await this.model.save('localstorage://flappy-dqn');
-    localStorage.setItem('flappy_dqn_metadata', JSON.stringify({
-      epsilon,
-      generation
-    }));
-    console.log('DQN Brain saved! Gen:', generation);
+    await this.persistence.saveModel(this.model);
+    await this.persistence.saveReplayBuffers(this.replayBuffer);
+    await this.persistence.saveMetadata({ epsilon, generation });
+    console.log('Estado completo salvo! Gen:', generation);
   }
 
   async loadBrain() {
     try {
-      const model = await tf.loadLayersModel('localstorage://flappy-dqn');
-      this.model = model;
-      // CORREÇÃO: Recompile o modelo carregado para restaurar optimizer/loss
-      this.model.compile({
-        optimizer: tf.train.adam(LEARNING_RATE),
-        loss: 'meanSquaredError'
-      });
-      this.targetModel = this.createModel();
-      this.targetModel.setWeights(model.getWeights());
-      const metadata = JSON.parse(localStorage.getItem('flappy_dqn_metadata'));
-      if (metadata) {
-        epsilon = metadata.epsilon;
-        const generation = metadata.generation;
-        console.log('DQN Brain loaded! Epsilon:', epsilon, 'Gen:', generation);
-        return { success: true, generation };
+      const model = await this.persistence.loadModel();
+      if (model) {
+        this.model = model;
+        this.model.compile({ optimizer: tf.train.adam(LEARNING_RATE), loss: 'meanSquaredError' });
+        this.targetModel = this.createModel();
+        this.targetModel.setWeights(model.getWeights());
+
+        await this.persistence.loadReplayBuffers(this.replayBuffer);
+
+        const metadata = await this.persistence.loadMetadata();
+        if (metadata) {
+          epsilon = metadata.epsilon ?? 0.9;
+          const gen = metadata.generation ?? 1;
+          console.log('Estado completo carregado! Epsilon:', epsilon, 'Gen:', gen);
+          return { success: true, generation: gen };
+        }
       }
     } catch (e) {
-      console.log('No DQN brain found');
+      console.log('Nenhum estado salvo encontrado');
     }
     return { success: false, generation: 1 };
   }
@@ -209,9 +213,9 @@ export class DQNAgent {
   }
 }
 
-export function resetBrain() {
-  localStorage.removeItem('flappy-dqn');
-  localStorage.removeItem('flappy_dqn_metadata');
-  epsilon = 0.1;
-  console.log('DQN Brain reset');
+export async function resetBrain() {
+  const pm = new PersistenceManager();
+  await pm.clearAll();
+  epsilon = 0.9;
+  console.log('Jogo completamente resetado');
 }

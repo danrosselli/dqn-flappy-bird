@@ -26,6 +26,10 @@ export class Game extends Phaser.Scene {
 	}
 
 	async create() {
+
+		// ← NOVA FLAG
+		this.ready = false; // Indica que o create() terminou
+
 		if (this.generation === 1) {
 			const loaded = await this.agent.loadBrain();
 			if (loaded.success) {
@@ -106,10 +110,11 @@ export class Game extends Phaser.Scene {
 		});
 
 		this.physics.add.collider(this.bird, this.pipes, this.hitPipe, null, this);
+		this.ready = true;
 	}
 
 	async update() {
-		if (this.gameOver) return;
+		if (this.gameOver || !this.ready) return; // ← PROTEÇÃO AQUI
 
 		// NOVA: Acelera pipes com score + CAP MÁXIMO 450 (evita impossível)
 		const pipeSpeed = Math.min(200 + this.score * 0.4, 400);
