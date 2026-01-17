@@ -1,2 +1,2 @@
-# qlearning-flappy-simulator
-QLearning in Flappy Bird Game  (Phazer)
+# dqn-flappy-bird
+Deep Q-Learning Flappy Bird Game using Phazer Engine
