@@ -6,7 +6,8 @@
  * ============================================================ */
 
 import * as tf from '@tensorflow/tfjs';
-import { ReplayBuffer } from './replayBuffer.js';  // ← IMPORT AQUI (ajuste path se necessário)
+//import { ReplayBuffer } from './replayBuffer.js';  // ← IMPORT AQUI (ajuste path se necessário)
+import { PERReplayBuffer } from './perReplayBuffer.js';  // Ajuste o path se necessário
 import { PersistenceManager } from './persistenceManager.js';
 
 /* ------------------------------------------------------------
@@ -39,9 +40,12 @@ export class DQNAgent {
     this.model = this.createModel();
     this.targetModel = this.createModel();
     this.targetModel.setWeights(this.model.getWeights());
-    this.replayBuffer = new ReplayBuffer();  // ← Usa defaults (50k reservoir + 10k recent)
+    this.replayBuffer = new PERReplayBuffer();  // ← Usa defaults (50k reservoir + 10k recent)
     this.stepCount = 0;
     this.trainingInProgress = false; // Flag para evitar treinos concorrentes
+
+    this.beta = 0.4; // Inicialização beta para PER
+    this.betaIncrement = (1.0 - 0.4) / 100000; // Aumenta gradualmente para 1.0 (ajuste o denominador baseado nas suas steps/gerações totais)
 
     // Load model from IndexedDB or create new
     this.persistence = new PersistenceManager();
@@ -77,13 +81,9 @@ export class DQNAgent {
   }
 
   async train() {
-    // CORREÇÃO: Incrementa stepCount SEMPRE, no início, para evitar congelamento
     this.stepCount++;
 
-    // Throttle: Treina só a cada TRAIN_THROTTLE passos (agora stepCount já avançou)
     if (this.stepCount % TRAIN_THROTTLE !== 0) {
-      // Opcional: Log para debug (comente se quiser silenciar)
-      // console.log('Step skipped:', this.stepCount);
       return;
     }
     if (this.replayBuffer.size() < BATCH_SIZE) return;
@@ -94,60 +94,67 @@ export class DQNAgent {
 
     this.trainingInProgress = true;
 
-    // Usa o híbrido (reservoir + recent real)
-    const batch = this.replayBuffer.sampleRandomBasic(BATCH_SIZE);  // Ou passe %: sampleHybrid(BATCH_SIZE, 0.4)
+    // Sample com PER (retorna {batch, indices, weights})
+    const { batch, indices, weights } = this.replayBuffer.sample(BATCH_SIZE, this.beta);
 
-    const states = [];
-    const actions = [];
-    const rewards = [];
-    const nextStates = [];
-    const dones = [];
+    if (batch.length === 0) {  // Caso raro: buffer vazio ou erro
+      this.trainingInProgress = false;
+      return;
+    }
 
-    batch.forEach(transition => {
-      states.push(transition.state);
-      actions.push(transition.action);
-      rewards.push(transition.reward);
-      nextStates.push(transition.nextState);
-      dones.push(transition.done ? 1 : 0);
-    });
+    const states = batch.map(t => t.state);
+    const actions = batch.map(t => t.action);
+    const rewards = batch.map(t => t.reward);
+    const nextStates = batch.map(t => t.nextState);
+    const dones = batch.map(t => t.done ? 1 : 0);
 
-    // Create input tensors
-    const stateTensor = tf.tensor2d(states, [BATCH_SIZE, 8]);
-    const nextStateTensor = tf.tensor2d(nextStates, [BATCH_SIZE, 8]);
+    const stateTensor = tf.tensor2d(states, [batch.length, 8]);
+    const nextStateTensor = tf.tensor2d(nextStates, [batch.length, 8]);
     const rewardTensor = tf.tensor1d(rewards);
     const doneTensor = tf.tensor1d(dones);
+    const sampleWeightsTensor = tf.tensor1d(weights);
+    const actionsTensor = tf.tensor1d(actions, 'int32');
 
     try {
-      // Compute targets inside tidy
-      const targets = tf.tidy(() => {
+      // 1. Calcula os alvos (Target Q) e TD Errors para o buffer
+      const { targetQ, tdErrorsArray } = tf.tidy(() => {
         const nextQValues = this.targetModel.predict(nextStateTensor);
         const maxNextQ = nextQValues.max(1);
         const notDone = tf.logicalNot(tf.cast(doneTensor, 'bool'));
-        const targetQ = rewardTensor.add(maxNextQ.mul(gamma).mul(notDone));
+        const tq = rewardTensor.add(maxNextQ.mul(gamma).mul(notDone));
+
         const qValues = this.model.predict(stateTensor);
-        const qValuesArray = qValues.arraySync();
-        const targetQArray = targetQ.arraySync();
-        for (let i = 0; i < BATCH_SIZE; i++) {
-          qValuesArray[i][actions[i]] = targetQArray[i];
-        }
-        const targets = tf.tensor2d(qValuesArray, [BATCH_SIZE, 2]);
-        nextQValues.dispose();
-        maxNextQ.dispose();
-        targetQ.dispose();
-        qValues.dispose();
-        return targets;
+        const oneHotActions = tf.oneHot(actionsTensor, 2);
+        const selectedQ = tf.sum(qValues.mul(oneHotActions), 1);
+        const tdErrors = tq.sub(selectedQ).abs();
+
+        return {
+          targetQ: tq,
+          tdErrorsArray: tdErrors.dataSync()
+        };
       });
 
-      // Fit outside tidy
-      await this.model.fit(stateTensor, targets, {
-        epochs: 1,
-        batchSize: BATCH_SIZE,
-        verbose: 0
+      // 2. Fit manual com pesos (Importance Sampling)
+      this.model.optimizer.minimize(() => {
+        const qValues = this.model.predict(stateTensor);
+        const oneHotActions = tf.oneHot(actionsTensor, 2);
+        const selectedQ = tf.sum(qValues.mul(oneHotActions), 1);
+
+        // Weighted Mean Squared Error
+        const diff = tf.sub(targetQ, selectedQ);
+        const loss = tf.mean(tf.mul(tf.square(diff), sampleWeightsTensor));
+        return loss;
       });
+
+      // Atualiza priorities no buffer
+      this.replayBuffer.updatePriorities(indices, tdErrorsArray);
+
+      // Annealing beta (aumenta gradualmente para 1.0)
+      this.beta = Math.min(1.0, this.beta + this.betaIncrement);
 
       this.decayEpsilon();
 
-      targets.dispose();
+      targetQ.dispose();
     } catch (error) {
       console.error('Training error:', error);
     } finally {
@@ -155,10 +162,11 @@ export class DQNAgent {
       nextStateTensor.dispose();
       rewardTensor.dispose();
       doneTensor.dispose();
+      sampleWeightsTensor.dispose();
+      actionsTensor.dispose();
       this.trainingInProgress = false;
     }
 
-    // CORREÇÃO: Check de target update após incremento (agora sempre executa)
     if (this.stepCount % TARGET_UPDATE_FREQ === 0) {
       this.targetModel.setWeights(this.model.getWeights());
     }
