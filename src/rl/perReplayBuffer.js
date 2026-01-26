@@ -19,6 +19,9 @@ export class PERReplayBuffer {
     this.size_ = 0; // Tamanho atual
 
     this.maxPriority = 1.0; // Prioridade inicial máxima
+
+    this.priorityEpsilon = 1e-5;
+
   }
 
   add(state, action, reward, nextState, done) {
@@ -40,8 +43,9 @@ export class PERReplayBuffer {
     this.nextIdx = (this.nextIdx + 1) % this.bufferSize;
 
     // Atualiza prioridade inicial na tree
-    const priority = this.maxPriority;
-    this.tree.update(idx, Math.pow(priority, this.alpha));
+    const priority = this.maxPriority + this.priorityEpsilon; // ou um valor fixo alto como 1.0
+    const powered = Math.pow(priority, this.alpha);
+    this.tree.update(idx, powered);
   }
 
   sample(batchSize, beta) {
@@ -91,8 +95,9 @@ export class PERReplayBuffer {
   updatePriorities(indices, tdErrors) {
     for (let i = 0; i < indices.length; i++) {
       const idx = indices[i];
-      const priority = Math.abs(tdErrors[i]);
-      this.maxPriority = Math.max(this.maxPriority, priority);
+      const tdErrorAbs = Math.abs(tdErrors[i]);
+      const priority = tdErrorAbs + this.priorityEpsilon;
+      this.maxPriority = Math.max(this.maxPriority, tdErrorAbs); // mantém o max sem o epsilon
       const powered = Math.pow(priority, this.alpha);
       this.tree.update(idx, powered);
     }

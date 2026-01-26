@@ -367,7 +367,7 @@ export class Game extends Phaser.Scene {
 				z.scored = true;
 				this.score++;
 				this.scoreText.setText('Score: ' + this.score);
-				this.bonusReward = 10;
+				this.bonusReward = 1;
 			}
 		});
 	}
@@ -376,7 +376,7 @@ export class Game extends Phaser.Scene {
 		if (this.gameOver) return;
 		this.gameOver = true;
 
-		const deathReward = -20;
+		const deathReward = -2;
 		if (this.lastState !== null && this.lastAction !== null) {
 			const reward = deathReward;
 			const terminalState = [0, 0, 0, 0, 0, 0, 0, 0];

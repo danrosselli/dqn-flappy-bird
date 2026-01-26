@@ -29,6 +29,45 @@ export const TARGET_UPDATE_FREQ = 1000; // Atualiza target network com menos fre
 export const LEARNING_RATE = 0.001; // Learning rate menor para convergência suave
 export const TRAIN_THROTTLE = 2; // Treina a cada N passos para evitar sobrecarga
 
+// Classe custom com versão soft (diferenciável)
+class SparseReLU extends tf.layers.Layer {
+  constructor(config = {}) {
+    super(config);
+    this.threshold = config.threshold || 0.1;   // Threshold para esparsidade
+    this.steepness = config.steepness || 50;    // Quanto maior, mais "hard" (aproxima threshold rígido)
+  }
+
+  call(inputs) {
+    return tf.tidy(() => {
+      const relu = tf.relu(inputs);
+      const abs = tf.abs(inputs);
+      // Soft mask: sigmoid íngreme para aproximar hard threshold
+      const diff = tf.sub(abs, this.threshold);
+      const softMask = tf.sigmoid(tf.mul(this.steepness, diff));
+      return tf.mul(relu, softMask);
+    });
+  }
+
+  computeOutputShape(inputShape) {
+    return inputShape;
+  }
+
+  getConfig() {
+    return {
+      threshold: this.threshold,
+      steepness: this.steepness
+    };
+  }
+
+  static get className() {
+    return 'SparseReLU';
+  }
+}
+
+// Registre (uma vez só)
+tf.serialization.registerClass(SparseReLU);
+
+
 /* ------------------------------------------------------------
  * DQN AGENT
  * ------------------------------------------------------------ */
@@ -52,13 +91,36 @@ export class DQNAgent {
   }
 
   createModel() {
+    const threshold = 0.1;    // Teste 0.05 (menos esparsidade) a 0.2 (mais)
+    const steepness = 50;     // Teste 20 (mais soft) a 100 (quase hard)
+
     const model = tf.sequential();
 
-    model.add(tf.layers.dense({ units: 512, activation: 'relu', inputShape: [8] }));
-    model.add(tf.layers.dense({ units: 256, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 128, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 64, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 2, activation: 'linear' }));
+    model.add(tf.layers.dense({
+      units: 512,
+      activation: { className: 'SparseReLU', config: { threshold, steepness } },
+      inputShape: [8]
+    }));
+
+    model.add(tf.layers.dense({
+      units: 256,
+      activation: { className: 'SparseReLU', config: { threshold, steepness } }
+    }));
+
+    model.add(tf.layers.dense({
+      units: 128,
+      activation: { className: 'SparseReLU', config: { threshold, steepness } }
+    }));
+
+    model.add(tf.layers.dense({
+      units: 64,
+      activation: { className: 'SparseReLU', config: { threshold, steepness } }
+    }));
+
+    model.add(tf.layers.dense({
+      units: 2,
+      activation: 'linear'
+    }));
 
     model.compile({
       optimizer: tf.train.adam(LEARNING_RATE),
