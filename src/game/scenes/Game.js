@@ -207,7 +207,8 @@ export class Game extends Phaser.Scene {
 				this.lastAction,
 				reward,
 				currentState,
-				this.gameOver
+				this.gameOver,
+				this.score  // <-- ADICIONE O SCORE AQUI
 			);
 			await this.agent.train();
 		}
@@ -376,7 +377,7 @@ export class Game extends Phaser.Scene {
 		if (this.gameOver) return;
 		this.gameOver = true;
 
-		const deathReward = -2;
+		const deathReward = -1;
 		if (this.lastState !== null && this.lastAction !== null) {
 			const reward = deathReward;
 			const terminalState = [0, 0, 0, 0, 0, 0, 0, 0];
@@ -385,7 +386,8 @@ export class Game extends Phaser.Scene {
 				this.lastAction,
 				reward,
 				terminalState,
-				true
+				true,
+				this.score  // <-- AQUI TAMBÉM
 			);
 			await this.agent.train();
 		}

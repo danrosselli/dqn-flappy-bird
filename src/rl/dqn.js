@@ -6,8 +6,9 @@
  * ============================================================ */
 
 import * as tf from '@tensorflow/tfjs';
-//import { ReplayBuffer } from './replayBuffer.js';  // ← IMPORT AQUI (ajuste path se necessário)
+import { ReplayBuffer } from './replayBuffer.js';  // ← IMPORT AQUI (ajuste path se necessário)
 import { PERReplayBuffer } from './perReplayBuffer.js';  // Ajuste o path se necessário
+import { StratifiedPER } from './stratifiedPER.js';  // Ajuste o path se necessário
 import { PersistenceManager } from './persistenceManager.js';
 
 /* ------------------------------------------------------------
@@ -25,9 +26,9 @@ export let epsilon = 0.9; // Exploration Rate
 export const EPSILON_MIN = 0.000;
 export const EPSILON_DECAY = 0.9995;
 export const BATCH_SIZE = 64;
-export const TARGET_UPDATE_FREQ = 1000; // Atualiza target network com menos frequência
+export const TARGET_UPDATE_FREQ = 2000; // Atualiza target network com menos frequência
 export const LEARNING_RATE = 0.001; // Learning rate menor para convergência suave
-export const TRAIN_THROTTLE = 2; // Treina a cada N passos para evitar sobrecarga
+export const TRAIN_THROTTLE = 4; // Treina a cada N passos para evitar sobrecarga
 
 // Classe custom com versão soft (diferenciável)
 class SparseReLU extends tf.layers.Layer {
@@ -79,7 +80,7 @@ export class DQNAgent {
     this.model = this.createModel();
     this.targetModel = this.createModel();
     this.targetModel.setWeights(this.model.getWeights());
-    this.replayBuffer = new PERReplayBuffer();  // ← Usa defaults (50k reservoir + 10k recent)
+    this.replayBuffer = new StratifiedPER(15000, 0.6); // 15k por estrato = 45k total
     this.stepCount = 0;
     this.trainingInProgress = false; // Flag para evitar treinos concorrentes
 
@@ -97,23 +98,13 @@ export class DQNAgent {
     const model = tf.sequential();
 
     model.add(tf.layers.dense({
-      units: 512,
+      units: 64,
       activation: { className: 'SparseReLU', config: { threshold, steepness } },
       inputShape: [8]
     }));
 
     model.add(tf.layers.dense({
-      units: 256,
-      activation: { className: 'SparseReLU', config: { threshold, steepness } }
-    }));
-
-    model.add(tf.layers.dense({
-      units: 128,
-      activation: { className: 'SparseReLU', config: { threshold, steepness } }
-    }));
-
-    model.add(tf.layers.dense({
-      units: 64,
+      units: 32,
       activation: { className: 'SparseReLU', config: { threshold, steepness } }
     }));
 
@@ -144,32 +135,37 @@ export class DQNAgent {
 
   async train() {
     this.stepCount++;
-
-    if (this.stepCount % TRAIN_THROTTLE !== 0) {
-      return;
-    }
+    if (this.stepCount % TRAIN_THROTTLE !== 0) return;
     if (this.replayBuffer.size() < BATCH_SIZE) return;
-    if (this.trainingInProgress) {
-      console.log('Training skipped: Already in progress');
-      return;
-    }
-
+    if (this.trainingInProgress) return;
     this.trainingInProgress = true;
 
-    // Sample com PER (retorna {batch, indices, weights})
-    const { batch, indices, weights } = this.replayBuffer.sample(BATCH_SIZE, this.beta);
+    // === Sampling unificado: sempre retorna batch ===
+    const isPER = this.replayBuffer.constructor.name === 'StratifiedPER';
+    let batch;
+    if (isPER) {
+      batch = this.replayBuffer.sample(BATCH_SIZE, this.beta);
+    } else {
+      // Para buffer simples: use o método que deu alto score
+      batch = this.replayBuffer.sampleRandomBasic(BATCH_SIZE);
+      // Adiciona weight=1.0 em todas (para compatibilidade)
+      batch.forEach(t => t.weight = 1.0);
+    }
 
-    if (batch.length === 0) {  // Caso raro: buffer vazio ou erro
+    if (batch.length === 0) {
       this.trainingInProgress = false;
       return;
     }
 
+    // Extrai dados
     const states = batch.map(t => t.state);
     const actions = batch.map(t => t.action);
     const rewards = batch.map(t => t.reward);
     const nextStates = batch.map(t => t.nextState);
     const dones = batch.map(t => t.done ? 1 : 0);
+    const weights = batch.map(t => t.weight || 1.0);  // Usa .weight se PER, senão 1
 
+    // Tensores...
     const stateTensor = tf.tensor2d(states, [batch.length, 8]);
     const nextStateTensor = tf.tensor2d(nextStates, [batch.length, 8]);
     const rewardTensor = tf.tensor1d(rewards);
@@ -178,10 +174,13 @@ export class DQNAgent {
     const actionsTensor = tf.tensor1d(actions, 'int32');
 
     try {
-      // 1. Calcula os alvos (Target Q) e TD Errors para o buffer
       const { targetQ, tdErrorsArray } = tf.tidy(() => {
-        const nextQValues = this.targetModel.predict(nextStateTensor);
-        const maxNextQ = nextQValues.max(1);
+        // === DDQN (igual) ===
+        const nextQOnline = this.model.predict(nextStateTensor);
+        const nextActions = nextQOnline.argMax(1);
+        const nextQTarget = this.targetModel.predict(nextStateTensor);
+        const oneHotNext = tf.oneHot(nextActions, 2);
+        const maxNextQ = tf.sum(nextQTarget.mul(oneHotNext), 1);
         const notDone = tf.logicalNot(tf.cast(doneTensor, 'bool'));
         const tq = rewardTensor.add(maxNextQ.mul(gamma).mul(notDone));
 
@@ -190,13 +189,14 @@ export class DQNAgent {
         const selectedQ = tf.sum(qValues.mul(oneHotActions), 1);
         const tdErrors = tq.sub(selectedQ).abs();
 
-        return {
-          targetQ: tq,
-          tdErrorsArray: tdErrors.dataSync()
-        };
+        nextQOnline.dispose();
+        nextQTarget.dispose();
+        oneHotNext.dispose();
+
+        return { targetQ: tq, tdErrorsArray: tdErrors.dataSync() };
       });
 
-      // 2. Fit manual com pesos (Importance Sampling)
+      // Fit com weights (funciona com 1.0 no simples)
       this.model.optimizer.minimize(() => {
         const qValues = this.model.predict(stateTensor);
         const oneHotActions = tf.oneHot(actionsTensor, 2);
@@ -208,18 +208,22 @@ export class DQNAgent {
         return loss;
       });
 
-      // Atualiza priorities no buffer
-      this.replayBuffer.updatePriorities(indices, tdErrorsArray);
+      // === Adiciona tdError nas transitions (para PER) ===
+      batch.forEach((t, i) => t.tdError = tdErrorsArray[i]);
 
-      // Annealing beta (aumenta gradualmente para 1.0)
-      this.beta = Math.min(1.0, this.beta + this.betaIncrement);
+      // === Update priorities só se PER ===
+      if (isPER) {
+        this.replayBuffer.updatePriorities(batch);
+        this.beta = Math.min(1.0, this.beta + this.betaIncrement);
+      }
 
       this.decayEpsilon();
-
       targetQ.dispose();
+
     } catch (error) {
       console.error('Training error:', error);
     } finally {
+      // Dispose tensores...
       stateTensor.dispose();
       nextStateTensor.dispose();
       rewardTensor.dispose();
