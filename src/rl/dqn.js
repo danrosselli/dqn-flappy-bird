@@ -6,6 +6,7 @@
  * ============================================================ */
 
 import * as tf from '@tensorflow/tfjs';
+import { NestedModel } from './NestedModel.js';
 import { ReplayBuffer } from './replayBuffer.js';  // ← IMPORT AQUI (ajuste path se necessário)
 import { PERReplayBuffer } from './perReplayBuffer.js';  // Ajuste o path se necessário
 import { StratifiedPER } from './stratifiedPER.js';  // Ajuste o path se necessário
@@ -77,9 +78,9 @@ export class DQNAgent {
 
     // Force WebGL backend for better performance and stability
     tf.setBackend('webgl').then(() => console.log('TensorFlow.js backend: WebGL')).catch(err => console.warn('Failed to set WebGL:', err));
-    this.model = this.createModel();
-    this.targetModel = this.createModel();
-    this.targetModel.setWeights(this.model.getWeights());
+    this.model = new NestedModel();
+    this.targetModel = new NestedModel();
+    this.targetModel.syncFrom(this.model);
     this.replayBuffer = new StratifiedPER(15000, 0.6); // 15k por estrato = 45k total
     this.stepCount = 0;
     this.trainingInProgress = false; // Flag para evitar treinos concorrentes
@@ -89,36 +90,7 @@ export class DQNAgent {
 
     // Load model from IndexedDB or create new
     this.persistence = new PersistenceManager();
-  }
 
-  createModel() {
-    const threshold = 0.1;    // Teste 0.05 (menos esparsidade) a 0.2 (mais)
-    const steepness = 50;     // Teste 20 (mais soft) a 100 (quase hard)
-
-    const model = tf.sequential();
-
-    model.add(tf.layers.dense({
-      units: 64,
-      activation: { className: 'SparseReLU', config: { threshold, steepness } },
-      inputShape: [8]
-    }));
-
-    model.add(tf.layers.dense({
-      units: 32,
-      activation: { className: 'SparseReLU', config: { threshold, steepness } }
-    }));
-
-    model.add(tf.layers.dense({
-      units: 2,
-      activation: 'linear'
-    }));
-
-    model.compile({
-      optimizer: tf.train.adam(LEARNING_RATE),
-      loss: 'meanSquaredError'
-    });
-
-    return model;
   }
 
   async chooseAction(state) {
@@ -196,17 +168,8 @@ export class DQNAgent {
         return { targetQ: tq, tdErrorsArray: tdErrors.dataSync() };
       });
 
-      // Fit com weights (funciona com 1.0 no simples)
-      this.model.optimizer.minimize(() => {
-        const qValues = this.model.predict(stateTensor);
-        const oneHotActions = tf.oneHot(actionsTensor, 2);
-        const selectedQ = tf.sum(qValues.mul(oneHotActions), 1);
-
-        // Weighted Mean Squared Error
-        const diff = tf.sub(targetQ, selectedQ);
-        const loss = tf.mean(tf.mul(tf.square(diff), sampleWeightsTensor));
-        return loss;
-      });
+      // CERTO - usar trainStep do NestedModel:
+      await this.model.trainStep(stateTensor, targetQ, actionsTensor, sampleWeightsTensor);
 
       // === Adiciona tdError nas transitions (para PER) ===
       batch.forEach((t, i) => t.tdError = tdErrorsArray[i]);
@@ -234,38 +197,51 @@ export class DQNAgent {
     }
 
     if (this.stepCount % TARGET_UPDATE_FREQ === 0) {
-      this.targetModel.setWeights(this.model.getWeights());
+      this.targetModel.syncFrom(this.model);
     }
   }
 
   async saveBrain(generation) {
-    await this.persistence.saveModel(this.model);
+    // Salva NestedModel serializado (novo formato)
+    const modelData = this.model.serialize();
+    await this.persistence.saveNestedModel(modelData);
+
+    // Salva buffers e metadata
     await this.persistence.saveReplayBuffers(this.replayBuffer);
-    await this.persistence.saveMetadata({ epsilon, generation });
+    await this.persistence.saveMetadata({
+      epsilon,
+      generation,
+      stepCount: this.stepCount
+    });
+
     console.log('Estado completo salvo! Gen:', generation);
   }
 
   async loadBrain() {
     try {
-      const model = await this.persistence.loadModel();
-      if (model) {
-        this.model = model;
-        this.model.compile({ optimizer: tf.train.adam(LEARNING_RATE), loss: 'meanSquaredError' });
-        this.targetModel = this.createModel();
-        this.targetModel.setWeights(model.getWeights());
+      // Tenta carregar NestedModel primeiro
+      const modelData = await this.persistence.loadNestedModel();
+      if (modelData) {
+        await this.model.deserialize(modelData);
+        this.targetModel.syncFrom(this.model); // Sincroniza target
 
         await this.persistence.loadReplayBuffers(this.replayBuffer);
-
         const metadata = await this.persistence.loadMetadata();
+
         if (metadata) {
           epsilon = metadata.epsilon ?? 0.9;
+          this.stepCount = metadata.stepCount || 0;
           const gen = metadata.generation ?? 1;
-          console.log('Estado completo carregado! Epsilon:', epsilon, 'Gen:', gen);
+          console.log('NestedModel carregado! Gen:', gen, 'Step:', this.stepCount);
           return { success: true, generation: gen };
         }
       }
+
+      // Fallback: tenta carregar modelo TF.js legado (para compatibilidade)
+      // ... código legado se necessário ...
+
     } catch (e) {
-      console.log('Nenhum estado salvo encontrado');
+      console.log('Nenhum estado salvo encontrado:', e.message);
     }
     return { success: false, generation: 1 };
   }
