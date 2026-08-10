@@ -7,6 +7,10 @@
         Flappy Bird with Deep Q-Learning, trained entirely in the browser.
         The history of the project is part of the project itself.
       </p>
+      <p class="footer-by">
+        Created by <a href="{{ site.authorUrl }}" rel="author noopener">{{ site.authorName }}</a>
+        <span class="footer-by-handle">@{{ site.author }}</span>
+      </p>
       <p class="footer-status">
         <span class="status-dot" data-mode="{{ site.statusMode }}" aria-hidden="true"></span>
         {{ site.statusLabel }}{% if site.statusMode == 'demo' %} <span class="status-tag">demo</span>{% endif %}
@@ -45,7 +49,7 @@
   </div>
 
   <div class="footer-base">
-    <p>© <span data-year>2026</span> {{ site.author }} — a living record of an ongoing experiment.</p>
-    <p class="footer-mono-inline">MIT License · Deployed on GitHub Pages</p>
+    <p>© <span data-year>2026</span> {{ site.authorName }} — a living record of an ongoing experiment.</p>
+    <p class="footer-mono-inline">MIT License · Built with Eleventy · Deployed on GitHub Pages</p>
   </div>
 </footer>

@@ -32,6 +32,36 @@
   <meta name="google-site-verification" content="{{ site.googleSiteVerification }}">
   {% endif %}
 
+  <meta name="author" content="{{ site.authorName }}">
+  <meta name="generator" content="Eleventy">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "{{ site.url }}/#website",
+        "url": "{{ site.url }}{{ page.url | url }}",
+        "name": "{{ site.title }}",
+        "description": "{{ site.description }}",
+        "publisher": { "@id": "{{ site.url }}/#person" },
+        "inLanguage": "{{ site.lang }}"
+      },
+      {
+        "@type": "Person",
+        "@id": "{{ site.url }}/#person",
+        "name": "{{ site.authorName }}",
+        "url": "{{ site.authorUrl }}",
+        "sameAs": [
+          "{{ site.authorUrl }}",
+          "{{ site.repo }}"
+        ]
+      }
+    ]
+  }
+  </script>
+
   <link rel="icon" type="image/svg+xml" href="{{ '/assets/images/favicon.svg' | url }}">
   <link rel="icon" type="image/png" href="{{ '/assets/images/favicon.png' | url }}">
   <link rel="apple-touch-icon" href="{{ '/assets/images/favicon.png' | url }}">

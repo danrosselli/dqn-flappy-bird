@@ -6,6 +6,8 @@
   "base": "/dqn-flappy-bird/",
   "repo": "https://github.com/danrosselli/dqn-flappy-bird",
   "author": "danrosselli",
+  "authorName": "Daniel Rosselli",
+  "authorUrl": "https://github.com/danrosselli",
   "lang": "en",
   "locale": "en_US",
   "statusLabel": "AGENT LEARNING",

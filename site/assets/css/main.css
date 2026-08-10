@@ -519,6 +519,25 @@ h3 { font-size: 1.15rem; }
   margin-bottom: 0.6rem;
 }
 .footer-blurb { font-size: 0.88rem; color: var(--ink-2); max-width: 34em; }
+.footer-by {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+.footer-by a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  text-underline-offset: 3px;
+}
+.footer-by a:hover { color: var(--accent-strong); border-color: var(--accent); }
+.footer-by-handle { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-3); }
+
 .footer-status {
   display: flex;
   align-items: center;

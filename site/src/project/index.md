@@ -82,3 +82,12 @@ Train → observe → hypothesize → modify → train → evaluate → document
 ```
 
 The agent is learning. The project is learning with it.
+
+---
+
+## Author & maintainer
+
+**Daniel Rosselli** ([@danrosselli](https://github.com/danrosselli)) — designed, built,
+and trains the agent. This is a personal learning project: questions, corrections, and
+ideas are welcome as [issues](https://github.com/danrosselli/dqn-flappy-bird/issues)
+on the repository.
