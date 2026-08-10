@@ -28,6 +28,10 @@
 
   <meta name="theme-color" content="#f6f2e9">
 
+  {% if site.googleSiteVerification %}
+  <meta name="google-site-verification" content="{{ site.googleSiteVerification }}">
+  {% endif %}
+
   <link rel="icon" type="image/svg+xml" href="{{ '/assets/images/favicon.svg' | url }}">
   <link rel="icon" type="image/png" href="{{ '/assets/images/favicon.png' | url }}">
   <link rel="apple-touch-icon" href="{{ '/assets/images/favicon.png' | url }}">
