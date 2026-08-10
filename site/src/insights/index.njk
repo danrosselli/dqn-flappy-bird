@@ -1,0 +1,34 @@
+---
+layout: layouts/base.njk
+title: Insights
+description: A growing technical knowledge base — reward design, exploration, replay memory, architectures, and the research behind future experiments.
+section: insights
+---
+
+<section class="container" data-reveal-root>
+  <header class="page-head" data-reveal>
+    <p class="kicker"><span class="kicker-rule" aria-hidden="true"></span>Insights · the knowledge base</p>
+    <h1>Insights</h1>
+    <p class="lede">
+      Not a blog. A curated, growing knowledge base of techniques, observations, and
+      papers that shape what the agent tries next. Entries are updated when
+      experiments prove them right, wrong, or incomplete.
+    </p>
+  </header>
+
+  <div class="chip-row" role="list" aria-label="Insight categories" data-reveal>
+    <span class="chip" role="listitem">Reward</span>
+    <span class="chip" role="listitem">Architecture</span>
+    <span class="chip" role="listitem">Training</span>
+    <span class="chip" role="listitem">Exploration</span>
+    <span class="chip" role="listitem">Replay</span>
+    <span class="chip" role="listitem">Performance</span>
+    <span class="chip" role="listitem">Research</span>
+  </div>
+
+  <div class="card-grid card-grid--3 insights-grid">
+    {% for post in collections.insights %}
+    <div data-reveal>{% include "components/insight-card.njk" %}</div>
+    {% endfor %}
+  </div>
+</section>

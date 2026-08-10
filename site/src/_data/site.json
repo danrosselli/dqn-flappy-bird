@@ -1,0 +1,13 @@
+{
+  "title": "DQN Flappy Bird",
+  "description": "Teaching an agent to play Flappy Bird using Deep Q-Learning. An ongoing reinforcement learning experiment — continuously trained, evaluated, modified, and improved.",
+  "tagline": "The agent is learning. The project is learning with it.",
+  "url": "https://danrosselli.github.io",
+  "base": "/dqn-flappy-bird/",
+  "repo": "https://github.com/danrosselli/dqn-flappy-bird",
+  "author": "danrosselli",
+  "lang": "en",
+  "locale": "en_US",
+  "statusLabel": "AGENT LEARNING",
+  "statusMode": "demo"
+}

@@ -1,0 +1,22 @@
+{% from "components/macros.njk" import metric %}
+<aside class="agent-status panel" aria-label="Agent status">
+  <div class="agent-status-head">
+    <span class="panel-label">Agent status</span>
+    {% if agent.mode == 'demo' %}<span class="status-tag">example values</span>{% endif %}
+  </div>
+
+  <div class="agent-status-state">
+    <span class="status-dot status-dot--lg" data-mode="{{ agent.mode }}" aria-hidden="true"></span>
+    <span class="agent-status-training">{{ agent.status }}</span>
+    <span class="agent-status-active">{% if agent.active %}● ACTIVE{% else %}○ IDLE{% endif %}</span>
+  </div>
+
+  <div class="agent-status-grid">
+    {{ metric("Best score", agent.bestScore | num, "", "best") }}
+    {{ metric("Episodes", agent.episodes | num) }}
+    {{ metric("Epsilon", agent.epsilon | fixed(2)) }}
+    {{ metric("Avg reward", "+" ~ (agent.avgReward | fixed(2))) }}
+  </div>
+
+  <p class="agent-status-note">{{ agent.note }}</p>
+</aside>

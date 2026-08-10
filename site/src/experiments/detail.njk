@@ -1,0 +1,12 @@
+---
+layout: layouts/experiment.njk
+pagination:
+  data: experiments.list
+  size: 1
+  alias: experiment
+permalink: "experiments/{{ experiment.slug }}/index.html"
+eleventyComputed:
+  title: "Experiment #{{ experiment.id }} — {{ experiment.title }}"
+  description: "{{ experiment.objective or 'A numbered training experiment of the DQN Flappy Bird agent.' }}"
+section: experiments
+---

@@ -1,0 +1,54 @@
+---
+layout: layouts/base.njk
+title: Experiments
+description: The numbered experiment log — every change to the agent documented with its hypothesis, configuration, results, and conclusion.
+section: experiments
+---
+
+<section class="container" data-reveal-root>
+  <header class="page-head" data-reveal>
+    <p class="kicker"><span class="kicker-rule" aria-hidden="true"></span>Experiments · the public log</p>
+    <h1>Experiments</h1>
+    <p class="lede">
+      One hypothesis per experiment. Each entry records what changed, why, what
+      happened, and what was learned — preserved at a Git tag so the exact code that
+      produced the result is always one click away.
+    </p>
+  </header>
+
+  <section aria-labelledby="compare-heading" data-reveal>
+    <h2 id="compare-heading" class="section-subhead">Comparison</h2>
+    {% include "components/experiments-table.njk" %}
+  </section>
+
+  <section aria-labelledby="all-exp-heading" data-reveal>
+    <h2 id="all-exp-heading" class="section-subhead">All experiments</h2>
+    <div class="card-grid card-grid--2">
+      {% for exp in experiments.list %}
+      <div data-reveal>{% include "components/experiment-card.njk" %}</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="how-exp-heading" data-reveal>
+    <h2 id="how-exp-heading" class="section-subhead">How experiments are recorded</h2>
+    <div class="prose">
+      <p>
+        Experiments live in the repository, not in the website. Adding a directory
+        <code>experiments/004/</code> with a <code>README.md</code>, a
+        <code>config.json</code>, and a <code>results.json</code> is enough — this page
+        and the detail page are generated automatically at the next build. The schema
+        is documented in
+        <a href="{{ site.repo }}/blob/main/experiments/README.md" rel="noopener">experiments/README.md</a>;
+        larger training series live under
+        <a href="{{ site.repo }}/tree/main/data" rel="noopener">data/</a>.
+      </p>
+      <pre><code>experiments/
+└── 004/
+    ├── README.md       → objective · hypothesis · conclusion
+    ├── config.json     → machine-readable configuration
+    ├── results.json    → machine-readable results
+    └── training.json   → optional per-episode series</code></pre>
+    </div>
+  </section>
+</section>

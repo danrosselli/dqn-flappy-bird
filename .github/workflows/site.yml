@@ -1,0 +1,76 @@
+# ============================================================
+# DQN Flappy Bird — Project website deployment
+# Builds the Eleventy site (site/) and publishes it to GitHub
+# Pages. The game bundle is also built and exposed under /game/
+# so the Live Demo page can embed it without duplicating code.
+# Toolchain: Bun.
+# ============================================================
+
+name: Website
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "site/**"
+      - "experiments/**"
+      - "data/**"
+      - "src/**"
+      - "public/**"
+      - ".github/workflows/site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build site and game
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install website dependencies
+        working-directory: site
+        run: bun install
+
+      - name: Build website (Eleventy)
+        working-directory: site
+        run: bun run build
+
+      - name: Build game bundle for the Live Demo
+        run: |
+          bun install
+          bun run build-nolog
+          mkdir -p site/_site/game
+          cp -r dist/. site/_site/game/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/_site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

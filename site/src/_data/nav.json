@@ -1,0 +1,8 @@
+[
+  { "label": "The Project", "url": "/project/", "match": "/project/" },
+  { "label": "How It Works", "url": "/how-it-works/", "match": "/how-it-works/" },
+  { "label": "Training", "url": "/training/", "match": "/training/" },
+  { "label": "Experiments", "url": "/experiments/", "match": "/experiments/" },
+  { "label": "Insights", "url": "/insights/", "match": "/insights/" },
+  { "label": "Live Demo", "url": "/demo/", "match": "/demo/", "cta": true }
+]

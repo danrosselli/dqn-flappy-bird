@@ -1,0 +1,39 @@
+{# ============================================================
+   Score series chart — expects `experiment.series` = [{episode, score}]
+   ============================================================ #}
+{% set ns = namespace(max=1) %}
+{% for p in experiment.series %}{% if p.score > ns.max %}{% set ns.max = p.score %}{% endif %}{% endfor %}
+{% set lastP = experiment.series | last %}
+{% set maxEp = lastP.episode if lastP.episode > 0 else 1 %}
+
+<figure class="chart{% if experiment.placeholder %} chart--placeholder{% endif %}" role="img"
+  aria-label="Score progression over {{ lastP.episode | num }} episodes, best score {{ ns.max }}.{% if experiment.placeholder %} Placeholder preview data.{% endif %}">
+  <svg viewBox="0 0 640 240" fill="none" aria-hidden="true">
+    <rect class="chart-frame" x="1" y="1" width="638" height="238" rx="6"/>
+
+    {% for gv in [0.5, 1] %}
+      {% set gy = 204 - gv * 184 %}
+    <line class="chart-grid" x1="46" y1="{{ gy }}" x2="610" y2="{{ gy }}"/>
+    <text class="chart-tick" x="38" y="{{ gy + 4 }}" text-anchor="end">{{ (ns.max * gv) | round }}</text>
+    {% endfor %}
+    <line class="chart-grid" x1="46" y1="204" x2="610" y2="204"/>
+    <text class="chart-tick" x="38" y="208" text-anchor="end">0</text>
+
+    {% for frac in [0, 0.5, 1] %}
+      {% set gx = 46 + frac * 564 %}
+    <text class="chart-tick" x="{{ gx }}" y="224" text-anchor="middle">{{ ((maxEp * frac) / 1000) | round(1) }}k</text>
+    {% endfor %}
+
+    <polyline class="chart-line{% if experiment.placeholder %} chart-line--placeholder{% endif %}" points="
+      {%- for p in experiment.series -%}
+        {{ 46 + (p.episode / maxEp) * 564 }},{{ 204 - (p.score / ns.max) * 184 }}{{ " " }}
+      {%- endfor -%}
+    "/>
+
+    <text class="chart-axis" x="328" y="236" text-anchor="middle">episodes</text>
+    <text class="chart-axis" x="14" y="28">score</text>
+    {% if experiment.placeholder %}
+    <text class="chart-watermark" x="328" y="120" text-anchor="middle">PLACEHOLDER</text>
+    {% endif %}
+  </svg>
+</figure>

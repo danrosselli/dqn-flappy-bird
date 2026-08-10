@@ -1,0 +1,87 @@
+{
+  "engine": {
+    "game": "Phaser 3.90",
+    "bundler": "Vite 6",
+    "ml": "TensorFlow.js 4.22",
+    "backend": "WebGL"
+  },
+  "game": {
+    "width": 1024,
+    "height": 768,
+    "gravity": 1000,
+    "flapVelocity": -350,
+    "flapGate": -180,
+    "pipeIntervalMs": 1900,
+    "gapMin": 200,
+    "gapMax": 410,
+    "speedBase": 200,
+    "speedPerPoint": 0.4,
+    "speedCap": 400,
+    "birdX": 120
+  },
+  "state": [
+    { "key": "dx", "label": "Pipe distance X", "formula": "dx / 1058", "range": "0 → 1", "description": "Horizontal distance to the trailing edge of the closest pipe ahead. Clipped to 0 once the bird passes it." },
+    { "key": "dy", "label": "Gap offset Y", "formula": "dy / 400", "range": "≈ −1 → 1", "description": "Vertical offset between the bird and the center of the current gap. Positive means the bird is below the gap." },
+    { "key": "velY", "label": "Vertical velocity", "formula": "velY / 1000", "range": "≈ −0.4 → 1", "description": "Current vertical velocity of the bird. Gravity is 1000 px/s² and a flap sets it to −350." },
+    { "key": "gap", "label": "Gap height", "formula": "(gap − 200) / 210", "range": "0 → 1", "description": "Opening height of the current pipe pair. Gaps spawn randomly between 200 and 410 px." },
+    { "key": "dxNext", "label": "Next pipe distance X", "formula": "dxNext / 1058", "range": "0 → 1", "description": "Distance to the pipe pair after the current one, so the agent can plan two obstacles ahead." },
+    { "key": "dyNext", "label": "Next gap offset Y", "formula": "dyNext / 400", "range": "≈ −1 → 1", "description": "Vertical offset to the center of the next gap." },
+    { "key": "gapNext", "label": "Next gap height", "formula": "(gapNext − 200) / 210", "range": "0 → 1", "description": "Opening height of the next pipe pair." },
+    { "key": "speed", "label": "Pipe speed", "formula": "(speed − 200) / 200", "range": "0 → 1", "description": "Current scroll speed of the world. Speed grows with the score (200 + 0.4 × score, capped at 400), so the environment gets faster as the agent succeeds." }
+  ],
+  "actions": [
+    { "id": 0, "name": "IDLE", "short": "Do nothing", "description": "Let physics run. Gravity pulls the bird down and it begins to tilt forward." },
+    { "id": 1, "name": "FLAP", "short": "Jump", "description": "Set vertical velocity to −350 px/s. Ignored while the bird is already rising fast (velocity.y ≤ −180), which prevents climb-spam." }
+  ],
+  "exploreBias": {
+    "value": 0.05,
+    "description": "During exploration the agent does not pick uniformly: a random action flaps only 5% of the time. Random flapping is almost always fatal, so biased exploration produces survivable random trajectories."
+  },
+  "rewards": [
+    { "event": "Survive a frame", "value": "+0.1", "kind": "positive", "note": "Small constant incentive for staying alive." },
+    { "event": "Aligned with the gap", "value": "up to +0.65", "kind": "positive", "note": "Gaussian proximity reward centered on the gap (σ = 0.5), shifted down by 0.35." },
+    { "event": "Far from the gap", "value": "down to −0.35", "kind": "negative", "note": "The same shaping term turns negative away from the gap center (clamped at −1.0)." },
+    { "event": "Extreme velocity", "value": "−0.05", "kind": "negative", "note": "Discourages vertical oscillation loops (|velY| > 700)." },
+    { "event": "Pass a pipe", "value": "+10", "kind": "positive", "note": "One-time bonus each time the bird clears a pipe pair." },
+    { "event": "Collision / out of bounds", "value": "−20", "kind": "negative", "note": "Terminal transition stored with a zeroed next state." }
+  ],
+  "network": {
+    "input": 8,
+    "layers": [
+      { "units": 512, "activation": "relu", "params": 4608 },
+      { "units": 256, "activation": "relu", "params": 131328 },
+      { "units": 128, "activation": "relu", "params": 32896 },
+      { "units": 64, "activation": "relu", "params": 8256 }
+    ],
+    "output": { "units": 2, "activation": "linear", "params": 130 },
+    "totalParams": 177218,
+    "optimizer": "Adam (lr 0.001)",
+    "loss": "Mean squared error",
+    "outputMeaning": "One Q-value per action: Q(s, IDLE) and Q(s, FLAP)."
+  },
+  "training": {
+    "gamma": 0.99,
+    "epsilonStart": 0.9,
+    "epsilonMin": 0,
+    "epsilonDecay": 0.9995,
+    "batchSize": 64,
+    "targetUpdateFreq": 1000,
+    "trainThrottle": 2,
+    "learningRate": 0.001
+  },
+  "memory": {
+    "legacySize": 50000,
+    "recentSize": 10000,
+    "reservoirSize": 40000,
+    "reservoirFloor": "5%",
+    "sampler": "Uniform random over the 50k legacy buffer",
+    "discardRule": "Frames with no pipe on screen (dx ≥ 1) are never stored.",
+    "alternatives": "The buffer also implements reservoir, recency, crash-focus, and reward-prioritized samplers, kept in the codebase for experimentation."
+  },
+  "persistence": {
+    "store": "IndexedDB (in the browser)",
+    "modelKey": "indexeddb://flappy-dqn-model",
+    "saved": "Network weights, replay buffers, epsilon, generation",
+    "trigger": "Saved on every death and restored on load — training continues across sessions."
+  }
+}

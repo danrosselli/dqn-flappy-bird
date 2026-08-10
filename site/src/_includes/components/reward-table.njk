@@ -1,0 +1,24 @@
+{# ============================================================
+   Reward function table from impl.json (mirrors Game.js)
+   ============================================================ #}
+<div class="table-wrap">
+  <table class="reward-table">
+    <caption class="visually-hidden">Reward function: events, values, and notes</caption>
+    <thead>
+      <tr>
+        <th scope="col">Event</th>
+        <th scope="col">Reward</th>
+        <th scope="col">Why it exists</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in impl.rewards %}
+      <tr>
+        <td>{{ r.event }}</td>
+        <td class="reward-value reward-value--{{ r.kind }}">{{ r.value }}</td>
+        <td class="reward-note">{{ r.note }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

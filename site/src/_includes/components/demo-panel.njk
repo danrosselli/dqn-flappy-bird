@@ -1,0 +1,43 @@
+{# ============================================================
+   Live Demo integration point.
+   The game is the agent: when the Vite production bundle is
+   present (built by CI into /game/), it is embedded here.
+   Otherwise an honest setup panel is shown. No game code is
+   duplicated into the site.
+   ============================================================ #}
+<div class="demo-frame" data-demo-frame data-demo-src="{{ '/game/index.html' | url }}">
+  <div class="demo-stage">
+    <div class="demo-loading" data-demo-loading>
+      <span class="status-dot status-dot--lg" data-mode="demo" aria-hidden="true"></span>
+      <p>Checking for the game bundle…</p>
+    </div>
+  </div>
+
+  <div class="demo-fallback" data-demo-fallback hidden>
+    <div class="demo-fallback-inner">
+      <p class="demo-fallback-title">The demo bundle is not deployed yet</p>
+      <p>
+        The live demo embeds the exact game from this repository — the agent trains
+        itself autonomously in your browser and persists progress to IndexedDB.
+        It appears here automatically once the deployment workflow builds the game into
+        <code>/game/</code>.
+      </p>
+      <p class="demo-fallback-cmd">
+        <span class="demo-cmd-label">Run it locally instead:</span>
+        <code>bun install && bun run dev</code>
+      </p>
+      <p>
+        <a class="btn btn--ghost" href="{{ site.repo }}" rel="noopener">View the game source on GitHub</a>
+      </p>
+    </div>
+  </div>
+
+  <noscript>
+    <div class="demo-fallback">
+      <div class="demo-fallback-inner">
+        <p class="demo-fallback-title">JavaScript is required to run the agent</p>
+        <p>The game and the neural network run entirely in the browser (Phaser + TensorFlow.js). You can also clone the repository and run <code>bun run dev</code>.</p>
+      </div>
+    </div>
+  </noscript>
+</div>

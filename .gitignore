@@ -140,3 +140,9 @@ vite.config.ts.timestamp-*
 
 # Bun lockfile
 bun.lock
+
+# Eleventy build output (project website — build artifact)
+site/_site/
+
+# Keep the website lockfile versioned for reproducible CI builds
+!site/bun.lock

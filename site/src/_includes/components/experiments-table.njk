@@ -1,0 +1,44 @@
+{# ============================================================
+   Experiment comparison: table + best-score bars.
+   Reads the shared experiments data layer.
+   ============================================================ #}
+{% if experiments.usingDemo %}
+<div class="demo-banner" role="note">
+  <span class="placeholder-note-badge">placeholder</span>
+  <p>The comparison below uses illustrative example data. It is replaced automatically once real experiments exist in <code>experiments/</code>.</p>
+</div>
+{% endif %}
+
+<div class="table-wrap">
+  <table class="exp-table">
+    <caption class="visually-hidden">Experiment comparison: best score, average score, episodes</caption>
+    <thead>
+      <tr>
+        <th scope="col">Experiment</th>
+        <th scope="col">Best</th>
+        <th scope="col">Average</th>
+        <th scope="col">Episodes</th>
+        <th scope="col" class="exp-table-barcol">Best score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for exp in experiments.list %}
+      {% set best = exp.results.score.best if exp.results and exp.results.score else 0 %}
+      <tr>
+        <td>
+          <a href="{{ ('/experiments/' ~ exp.slug ~ '/') | url }}" class="exp-table-id">#{{ exp.id }}</a>
+          <span class="exp-table-title">{{ exp.title }}</span>
+        </td>
+        <td class="exp-table-num">{{ best | num }}</td>
+        <td class="exp-table-num">{{ exp.results.score.average | num if exp.results and exp.results.score else "—" }}</td>
+        <td class="exp-table-num">{{ exp.results.training.episodes | num if exp.results and exp.results.training else "—" }}</td>
+        <td class="exp-table-barcol">
+          <span class="exp-bar" role="img" aria-label="Best score {{ best }} of {{ experiments.maxBest }}">
+            <span class="exp-bar-fill" style="--w: {{ (best / experiments.maxBest * 100) | round(1) }}%"></span>
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

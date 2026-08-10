@@ -1,0 +1,63 @@
+---
+layout: layouts/base.njk
+title: Live Demo
+description: Watch the DQN agent play and train live — the exact game and network from the repository, running and learning in your browser.
+section: demo
+---
+
+<section class="container" data-reveal-root>
+  <header class="page-head" data-reveal>
+    <p class="kicker"><span class="kicker-rule" aria-hidden="true"></span>Live demo · the agent, running</p>
+    <h1>Live Demo</h1>
+    <p class="lede">
+      This is not a recording. It is the agent itself — the same Phaser game and the
+      same DQN from this repository — playing, dying, and learning in your browser.
+      Leave it open and it keeps training; close it and IndexedDB remembers.
+    </p>
+  </header>
+
+  <div data-reveal>
+    {% include "components/demo-panel.njk" %}
+  </div>
+
+  <div class="demo-notes" data-reveal>
+    <article class="demo-note">
+      <h3>Nobody is playing</h3>
+      <p>
+        There is no human input and no scripted behavior. Every flap is the output of
+        the network — or, while ε is high, of the exploration sampler.
+      </p>
+    </article>
+    <article class="demo-note">
+      <h3>Progress persists locally</h3>
+      <p>
+        Weights, replay memory, ε, and generation are saved to your browser's
+        IndexedDB on every death. Your tab trains its own private lineage of the agent.
+      </p>
+    </article>
+    <article class="demo-note">
+      <h3>Read the HUD</h3>
+      <p>
+        The in-game overlay shows generation, ε, the raw state values, and both
+        Q-values — Q-Idle and Q-Flap. The gap between them is the agent's confidence.
+      </p>
+    </article>
+  </div>
+
+  <div class="prose" data-reveal style="margin-top: 2rem;">
+    <h2>Running it yourself</h2>
+    <p>
+      The demo is deployed straight from the repository. To run the training
+      environment locally — or to reset the brain and start from generation 1 —
+      clone the repo and use Bun:
+    </p>
+    <pre><code>git clone https://github.com/danrosselli/dqn-flappy-bird.git
+cd dqn-flappy-bird
+bun install
+bun run dev</code></pre>
+    <p>
+      The game dev server starts on <code>localhost:8080</code>. Everything the agent
+      learns stays in your browser; nothing leaves your machine.
+    </p>
+  </div>
+</section>

@@ -1,0 +1,15 @@
+{# Expects `post` — a collection item from collections.insights. #}
+<article class="insight-card">
+  <a href="{{ post.url | url }}">
+    <header class="insight-card-head">
+      <span class="chip chip--accent">{{ post.data.category | upper }}</span>
+      {% if post.data.updated %}<span class="insight-card-date">{{ post.data.updated | dateISO }}</span>{% endif %}
+    </header>
+    <h3 class="insight-card-title">{{ post.data.title }}</h3>
+    {% if post.data.description %}<p class="insight-card-summary">{{ post.data.description }}</p>{% endif %}
+    {% if post.data.keyIdea %}
+    <p class="insight-card-idea"><span class="insight-card-idea-label">Key idea —</span> {{ post.data.keyIdea }}</p>
+    {% endif %}
+    <span class="insight-card-more">Read insight <span aria-hidden="true">→</span></span>
+  </a>
+</article>

@@ -1,0 +1,254 @@
+---
+layout: layouts/base.njk
+---
+{% from "components/macros.njk" import metric, chip, kicker %}
+
+<!-- ============================================================
+     HERO — an experiment currently running
+     ============================================================ -->
+<section class="hero container">
+  <div class="hero-main" data-reveal>
+    <p class="kicker">
+      <span class="kicker-rule" aria-hidden="true"></span>
+      Deep Q-Learning · in-browser reinforcement learning
+    </p>
+    <h1>Teaching an agent<br>to play Flappy&nbsp;Bird.</h1>
+    <p class="lede">
+      A continuous learning experiment. A neural network plays, crashes, stores the
+      experience, updates itself, and tries again — every frame, entirely in the browser.
+    </p>
+    <div class="hero-ctas">
+      <a class="btn btn--primary" href="{{ '/how-it-works/' | url }}">How it works</a>
+      <a class="btn btn--ghost" href="{{ '/demo/' | url }}">Watch the agent</a>
+      <a class="btn btn--text" href="{{ site.repo }}" rel="noopener">View source&nbsp;↗</a>
+    </div>
+    <ul class="hero-stack" aria-label="Technology stack">
+      <li>Phaser 3.90</li>
+      <li>TensorFlow.js 4.22</li>
+      <li>DQN</li>
+      <li>IndexedDB persistence</li>
+    </ul>
+  </div>
+
+  <div class="hero-panel" data-reveal>
+    <div class="panel hero-instrument">
+      <p class="panel-label-row">
+        <span class="panel-label">Fig. 01 — the environment the agent sees</span>
+        <span class="panel-label panel-label--dim">live in <a href="{{ '/demo/' | url }}">demo</a></span>
+      </p>
+      {% set caption = "" %}
+      {% include "components/game-figure.njk" %}
+      {% include "components/agent-status.njk" %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     DATA FLOW STRIP
+     ============================================================ -->
+<section class="container hero-strip" aria-label="The learning data flow" data-reveal>
+  {% include "components/pipeline-strip.njk" %}
+</section>
+
+<!-- ============================================================
+     WHAT IS THIS
+     ============================================================ -->
+<section class="container home-section" data-reveal-root>
+  <header class="home-section-head" data-reveal>
+    {{ kicker("01 · The project") }}
+    <h2>A game, an agent,<br>and a public lab notebook.</h2>
+    <p class="home-section-lede">
+      DQN Flappy Bird is a personal research experiment in reinforcement learning.
+      It is not finished — that is the point. The site documents the agent as it evolves.
+    </p>
+  </header>
+
+  <div class="card-grid card-grid--3">
+    <article class="card" data-reveal>
+      <span class="card-num" aria-hidden="true">01</span>
+      <h3>The game</h3>
+      <p>
+        A Flappy Bird environment built with Phaser 3: gravity, pipes, and one brutal rule —
+        touch anything and the episode ends. Pipe speed grows with the score,
+        so success literally makes the world faster.
+      </p>
+    </article>
+    <article class="card" data-reveal>
+      <span class="card-num" aria-hidden="true">02</span>
+      <h3>The agent</h3>
+      <p>
+        A Deep Q-Network running on TensorFlow.js. It sees 8 normalized numbers,
+        outputs two Q-values — <em>idle</em> or <em>flap</em> — and acts once per frame.
+        Roughly {{ impl.network.totalParams | num }} parameters, no discretization.
+      </p>
+    </article>
+    <article class="card" data-reveal>
+      <span class="card-num" aria-hidden="true">03</span>
+      <h3>The experiment</h3>
+      <p>
+        Training never really ends. Every change — a reward tweak, a new state variable,
+        a different sampling strategy — becomes a numbered, documented experiment
+        with its own configuration, results, and Git tag.
+      </p>
+    </article>
+  </div>
+
+  <p class="section-more" data-reveal><a href="{{ '/project/' | url }}">Read about the project <span aria-hidden="true">→</span></a></p>
+</section>
+
+<!-- ============================================================
+     HOW THE AGENT LEARNS
+     ============================================================ -->
+<section class="container home-section" data-reveal-root>
+  <div class="split">
+    <div class="split-copy" data-reveal>
+      {{ kicker("02 · How it works") }}
+      <h2>State in. Action out.<br>Reward closes the loop.</h2>
+      <p>
+        Once per frame the environment hands the agent an 8-value state — distances,
+        velocity, gap geometry, world speed. The network answers with two Q-values,
+        the agent picks the better action, and the resulting reward is stored as
+        experience. Batches of that experience train the network against the Bellman target.
+      </p>
+      <p>
+        On death the brain is saved to IndexedDB and a new generation starts
+        automatically — the agent keeps training across browser sessions.
+      </p>
+      <p class="section-more"><a href="{{ '/how-it-works/' | url }}">The full mechanism <span aria-hidden="true">→</span></a></p>
+    </div>
+    <div class="split-figure" data-reveal>
+      {% include "components/loop-diagram.njk" %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     THE NETWORK
+     ============================================================ -->
+<section class="container home-section" data-reveal-root>
+  <div class="split split--flip">
+    <div class="split-copy" data-reveal>
+      {{ kicker("03 · The network") }}
+      <h2>Eight numbers in.<br>Two Q-values out.</h2>
+      <p>
+        The policy network is a fully-connected stack —
+        <strong>8 → 512 → 256 → 128 → 64 → 2</strong> — trained with Adam on mean-squared
+        error. A frozen target network, synced every {{ impl.training.targetUpdateFreq | num }} steps,
+        keeps the bootstrapped targets stable.
+      </p>
+      <div class="chip-row" role="list" aria-label="Network facts">
+        <span class="chip" role="listitem">{{ impl.network.totalParams | num }} params</span>
+        <span class="chip" role="listitem">ReLU × 4</span>
+        <span class="chip" role="listitem">Adam · lr {{ impl.training.learningRate }}</span>
+        <span class="chip" role="listitem">γ = {{ impl.training.gamma }}</span>
+      </div>
+      <p class="section-more"><a href="{{ '/how-it-works/neural-network/' | url }}">Network details <span aria-hidden="true">→</span></a></p>
+    </div>
+    <div class="split-figure" data-reveal>
+      {% include "components/nn-canvas.njk" %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TRAINING
+     ============================================================ -->
+<section class="container home-section" data-reveal-root>
+  <div class="split">
+    <div class="split-copy" data-reveal>
+      {{ kicker("04 · Training") }}
+      <h2>Exploration decays.<br>Experience accumulates.</h2>
+      <p>
+        The agent starts curious — ε = {{ impl.training.epsilonStart }}, mostly random
+        (but flap-biased) actions — and anneals toward pure exploitation.
+        Every transition feeds a {{ (impl.memory.legacySize / 1000) | round }}k-transition replay memory,
+        sampled in batches of {{ impl.training.batchSize }} every {{ impl.training.trainThrottle }} steps.
+      </p>
+      <div class="chip-row" role="list" aria-label="Training hyperparameters">
+        <span class="chip" role="listitem">ε {{ impl.training.epsilonStart }} → {{ impl.training.epsilonMin }}</span>
+        <span class="chip" role="listitem">decay {{ impl.training.epsilonDecay }}</span>
+        <span class="chip" role="listitem">batch {{ impl.training.batchSize }}</span>
+        <span class="chip" role="listitem">target sync {{ impl.training.targetUpdateFreq | num }}</span>
+      </div>
+      <p class="section-more"><a href="{{ '/training/' | url }}">Inside the training loop <span aria-hidden="true">→</span></a></p>
+    </div>
+    <div class="split-figure" data-reveal>
+      {% set caption = "Epsilon schedule, computed from the real constants in src/rl/dqn.js." %}
+      {% include "components/epsilon-chart.njk" %}
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     EXPERIMENTS
+     ============================================================ -->
+<section class="container home-section" data-reveal-root>
+  <header class="home-section-head home-section-head--row" data-reveal>
+    <div>
+      {{ kicker("05 · Experiments") }}
+      <h2>Every change is an experiment.</h2>
+      <p class="home-section-lede">
+        Hypothesis, configuration, results, conclusion — numbered, versioned, and compared.
+      </p>
+    </div>
+    <p class="section-more"><a href="{{ '/experiments/' | url }}">All experiments <span aria-hidden="true">→</span></a></p>
+  </header>
+
+  {% if experiments.usingDemo %}
+  <aside class="placeholder-note" role="note" data-reveal>
+    <span class="placeholder-note-badge">placeholder</span>
+    <p>No experiments have been published to <code>experiments/</code> yet — the cards below preview the interface with illustrative data.</p>
+  </aside>
+  {% endif %}
+
+  <div class="card-grid card-grid--2">
+    {% for exp in experiments.recent %}
+    <div data-reveal>{% include "components/experiment-card.njk" %}</div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ============================================================
+     INSIGHTS
+     ============================================================ -->
+<section class="container home-section" data-reveal-root>
+  <header class="home-section-head home-section-head--row" data-reveal>
+    <div>
+      {{ kicker("06 · Insights") }}
+      <h2>The knowledge base behind the agent.</h2>
+      <p class="home-section-lede">
+        Techniques, observations, and papers that shape what gets tried next.
+      </p>
+    </div>
+    <p class="section-more"><a href="{{ '/insights/' | url }}">All insights <span aria-hidden="true">→</span></a></p>
+  </header>
+
+  <div class="card-grid card-grid--3">
+    {% for post in collections.insights | slice(0, 3) %}
+    <div data-reveal>{% include "components/insight-card.njk" %}</div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ============================================================
+     DEMO CTA
+     ============================================================ -->
+<section class="container home-section" data-reveal>
+  <div class="demo-cta panel">
+    <div class="demo-cta-copy">
+      <p class="kicker kicker--light"><span class="kicker-rule" aria-hidden="true"></span>07 · Live demo</p>
+      <h2>Watch the agent learn — live.</h2>
+      <p>
+        The demo is the real thing: the same Phaser game and the same DQN agent from
+        this repository, training itself in your browser tab. Progress persists locally —
+        come back later and the agent remembers.
+      </p>
+      <a class="btn btn--light" href="{{ '/demo/' | url }}">Open the live demo</a>
+    </div>
+    <div class="demo-cta-meta" aria-label="Demo details">
+      <p><span class="demo-meta-label">RUNS</span> entirely client-side</p>
+      <p><span class="demo-meta-label">PERSISTS</span> IndexedDB · your browser</p>
+      <p><span class="demo-meta-label">SOURCE</span> <a href="{{ site.repo }}" rel="noopener">github.com/danrosselli/dqn-flappy-bird</a></p>
+    </div>
+  </div>
+</section>

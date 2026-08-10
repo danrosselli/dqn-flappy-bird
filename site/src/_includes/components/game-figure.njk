@@ -1,0 +1,80 @@
+{# ============================================================
+   Original schematic illustration of the game environment.
+   Flappy-Bird-inspired geometry, drawn as a technical diagram —
+   not a copy of the original game's artwork.
+   ============================================================ #}
+<figure class="game-figure" role="img"
+  aria-label="Schematic of the game: a bird between two pipe pairs. Arrows mark the horizontal distance dx to the next pipe, the vertical offset dy to the gap center, the bird's velocity, and the gap height.">
+  <svg viewBox="0 0 640 400" fill="none" aria-hidden="true">
+    <!-- frame -->
+    <rect class="gf-frame" x="1" y="1" width="638" height="398" rx="6"/>
+    <!-- corner ticks -->
+    <path class="gf-tick" d="M1 22V7a6 6 0 0 1 6-6h15M639 22V7a6 6 0 0 0-6-6h-15M1 378v15a6 6 0 0 0 6 6h15M639 378v15a6 6 0 0 1-6 6h-15"/>
+
+    <!-- distant pipe pair (right edge, cropped) -->
+    <g class="gf-pipe gf-pipe--far">
+      <rect x="566" y="-4" width="52" height="118"/>
+      <rect x="560" y="104" width="64" height="14"/>
+      <rect x="566" y="232" width="52" height="120"/>
+      <rect x="560" y="232" width="64" height="14"/>
+    </g>
+
+    <!-- main pipe pair -->
+    <g class="gf-pipe">
+      <rect x="424" y="-4" width="56" height="152"/>
+      <rect x="418" y="134" width="68" height="14"/>
+      <rect x="424" y="272" width="56" height="80"/>
+      <rect x="418" y="272" width="68" height="14"/>
+    </g>
+
+    <!-- gap bracket -->
+    <g class="gf-annot">
+      <path d="M500 148v124M496 148h8M496 272h8"/>
+      <text x="516" y="214" class="gf-text">gap</text>
+    </g>
+
+    <!-- ground -->
+    <line class="gf-ground" x1="0" y1="352" x2="640" y2="352"/>
+    <g class="gf-hatch">
+      <path d="M12 360l10 10M44 360l10 10M76 360l10 10M108 360l10 10M140 360l10 10M172 360l10 10M204 360l10 10M236 360l10 10M268 360l10 10M300 360l10 10M332 360l10 10M364 360l10 10M396 360l10 10M428 360l10 10M460 360l10 10M492 360l10 10M524 360l10 10M556 360l10 10M588 360l10 10M620 360l10 10"/>
+    </g>
+
+    <!-- dx annotation: bird → pipe -->
+    <g class="gf-annot">
+      <line x1="178" y1="238" x2="412" y2="238" stroke-dasharray="5 5"/>
+      <path d="M412 238l-8-4v8z" class="gf-arrowhead"/>
+      <text x="282" y="228" class="gf-text">dx</text>
+    </g>
+
+    <!-- dy annotation: gap center → bird -->
+    <g class="gf-annot">
+      <line x1="396" y1="210" x2="396" y2="238" stroke-dasharray="4 4"/>
+      <line x1="396" y1="210" x2="424" y2="210" stroke-dasharray="4 4"/>
+      <circle cx="452" cy="210" r="3.5" class="gf-gapcenter"/>
+      <text x="368" y="206" class="gf-text">dy</text>
+    </g>
+
+    <!-- bird -->
+    <g class="gf-bird">
+      <circle cx="160" cy="238" r="17"/>
+      <path d="M147 243c-4 8 2 14 11 13 7-1 11-6 10-12-6 3-14 3-21-1z" class="gf-wing"/>
+      <circle cx="166" cy="233" r="2.6" class="gf-eye"/>
+      <path d="M176 238l11 3-11 4z" class="gf-beak"/>
+    </g>
+
+    <!-- velocity annotation -->
+    <g class="gf-annot">
+      <line x1="160" y1="262" x2="160" y2="292"/>
+      <path d="M160 292l-4-8h8z" class="gf-arrowhead"/>
+      <text x="172" y="286" class="gf-text">velY</text>
+    </g>
+
+    <!-- HUD-style labels -->
+    <text x="18" y="34" class="gf-hud">SCORE 127</text>
+    <text x="18" y="52" class="gf-hud gf-hud--dim">AGENT · DQN</text>
+    <text x="622" y="34" class="gf-hud gf-hud--dim" text-anchor="end">s = [dx dy velY gap dx′ dy′ gap′ v]</text>
+  </svg>
+  {% if caption %}
+  <figcaption>{{ caption }}</figcaption>
+  {% endif %}
+</figure>

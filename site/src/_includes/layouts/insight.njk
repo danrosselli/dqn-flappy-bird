@@ -1,0 +1,86 @@
+---
+layout: layouts/base.njk
+---
+{% from "components/macros.njk" import reference %}
+{% set sib = collections.insights | withSiblings(page.url) %}
+
+<article class="insight container" data-reveal-root>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="{{ '/' | url }}">Home</a></li>
+      <li><a href="{{ '/insights/' | url }}">Insights</a></li>
+      <li aria-current="page">{{ title }}</li>
+    </ol>
+  </nav>
+
+  <header class="article-head" data-reveal>
+    <p class="kicker">
+      <span class="kicker-rule" aria-hidden="true"></span>
+      <span class="chip chip--accent">{{ category | upper }}</span>
+      {% if updated %}<span class="kicker-date">UPDATED {{ updated | dateISO }}</span>{% endif %}
+    </p>
+    <h1>{{ title }}</h1>
+    {% if description %}<p class="lede">{{ description }}</p>{% endif %}
+  </header>
+
+  <div class="insight-body">
+    {% if keyIdea %}
+    <aside class="key-idea" data-reveal>
+      <p class="key-idea-label">Key idea</p>
+      <p>{{ keyIdea }}</p>
+    </aside>
+    {% endif %}
+
+    <div class="prose" data-reveal>
+      {{ content | safe }}
+    </div>
+
+    {% if relatedExperiments and relatedExperiments.length %}
+    <section class="related-experiments" data-reveal>
+      <h2>Related experiments</h2>
+      <ul class="related-list">
+        {% for expId in relatedExperiments %}
+        <li><a class="chip chip--link" href="{{ ('/experiments/' ~ (expId | string | pad(3)) ~ '/') | url }}">#{{ expId | string | pad(3) }}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% else %}
+    <section class="related-experiments" data-reveal>
+      <h2>Related experiments</h2>
+      <p class="todo-line">None yet — links appear once experiments referencing this idea are recorded.</p>
+    </section>
+    {% endif %}
+
+    {% if references and references.length %}
+    <section class="references" data-reveal>
+      <h2>References</h2>
+      <ol class="reference-list">
+        {% for ref in references %}
+        {{ reference(ref, loop.index) }}
+        {% endfor %}
+      </ol>
+    </section>
+    {% endif %}
+  </div>
+
+  <nav class="pager" aria-label="More insights">
+    {% if sib.prev %}
+    <a class="pager-link pager-prev" href="{{ sib.prev.url | url }}">
+      <span class="pager-dir" aria-hidden="true">←</span>
+      <span>
+        <span class="pager-label">Previous insight</span>
+        <span class="pager-title">{{ sib.prev.data.title }}</span>
+      </span>
+    </a>
+    {% else %}<span></span>{% endif %}
+    {% if sib.next %}
+    <a class="pager-link pager-next" href="{{ sib.next.url | url }}">
+      <span>
+        <span class="pager-label">Next insight</span>
+        <span class="pager-title">{{ sib.next.data.title }}</span>
+      </span>
+      <span class="pager-dir" aria-hidden="true">→</span>
+    </a>
+    {% else %}<span></span>{% endif %}
+  </nav>
+</article>

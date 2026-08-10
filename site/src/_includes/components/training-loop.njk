@@ -1,0 +1,32 @@
+{# ============================================================
+   The training loop as implemented in Game.update()
+   ============================================================ #}
+{% set steps = [
+  { "name": "Observe state", "detail": "Read the 8 normalized values describing the world." },
+  { "name": "Choose action", "detail": "ε-greedy: with probability ε take a (flap-biased) random action, otherwise argmax Q." },
+  { "name": "Play one frame", "detail": "Phaser steps the physics: gravity, flap, pipes advance." },
+  { "name": "Receive reward", "detail": "Survival +0.1, gap proximity shaping, +10 per pipe, −20 on death." },
+  { "name": "Store transition", "detail": "(s, a, r, s′, done) enters the replay memory — unless no pipe is on screen." },
+  { "name": "Sample batch", "detail": "64 transitions drawn uniformly from the 50k legacy buffer." },
+  { "name": "Train network", "detail": "Every 2 steps: one Adam update against the Bellman target (γ = 0.99)." },
+  { "name": "Sync target network", "detail": "Every 1000 steps the target network copies the online weights." }
+] %}
+
+<ol class="steps" aria-label="Training loop steps">
+  {% for step in steps %}
+  <li class="step">
+    <span class="step-num" aria-hidden="true">{{ loop.index | pad(2) }}</span>
+    <span class="step-body">
+      <span class="step-name">{{ step.name }}</span>
+      <span class="step-detail">{{ step.detail }}</span>
+    </span>
+  </li>
+  {% endfor %}
+  <li class="step step--loop">
+    <span class="step-num" aria-hidden="true">↺</span>
+    <span class="step-body">
+      <span class="step-name">Repeat</span>
+      <span class="step-detail">Every frame of every episode. On death: persist to IndexedDB and restart — generation +1.</span>
+    </span>
+  </li>
+</ol>

@@ -1,0 +1,10 @@
+{
+  "mode": "demo",
+  "status": "TRAINING",
+  "active": true,
+  "bestScore": 327,
+  "episodes": 50000,
+  "epsilon": 0.08,
+  "avgReward": 1.42,
+  "note": "Example values shown to preview the interface. No training data has been published to the repository yet — see data/ and experiments/."
+}

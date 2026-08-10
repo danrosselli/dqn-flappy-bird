@@ -1,0 +1,44 @@
+{# ============================================================
+   Epsilon decay — computed at build time from the real
+   constants in src/rl/dqn.js (ε: 0.9 × 0.9995^step → 0)
+   ============================================================ #}
+<figure class="chart" role="img"
+  aria-label="Epsilon decay curve. Epsilon starts at 0.9 and is multiplied by 0.9995 after every training step, reaching 0.1 near step 4400 and approaching zero around step 16000.">
+  <svg viewBox="0 0 640 260" fill="none" aria-hidden="true">
+    <rect class="chart-frame" x="1" y="1" width="638" height="258" rx="6"/>
+
+    <!-- horizontal gridlines ε = 0.3 / 0.6 / 0.9 -->
+    {% for gv in [0.3, 0.6, 0.9] %}
+      {% set gy = 224 - (gv / 0.9) * 200 %}
+    <line class="chart-grid" x1="46" y1="{{ gy }}" x2="610" y2="{{ gy }}"/>
+    <text class="chart-tick" x="38" y="{{ gy + 4 }}" text-anchor="end">{{ gv | fixed(1) }}</text>
+    {% endfor %}
+
+    <!-- x ticks -->
+    {% for xv in [0, 4000, 8000, 12000, 16000] %}
+      {% set gx = 46 + (xv / 16000) * 564 %}
+    <line class="chart-grid chart-grid--v" x1="{{ gx }}" y1="24" x2="{{ gx }}" y2="224"/>
+    <text class="chart-tick" x="{{ gx }}" y="242" text-anchor="middle">{{ (xv / 1000) }}k</text>
+    {% endfor %}
+
+    <!-- decay curve -->
+    <polyline class="chart-line" points="
+      {%- for p in charts.epsilonCurve -%}
+        {{ 46 + (p.step / 16000) * 564 }},{{ 224 - (p.epsilon / 0.9) * 200 }}{{ " " }}
+      {%- endfor -%}
+    "/>
+
+    <!-- markers -->
+    {% for m in charts.epsilonMarkers %}
+      {% set mx = 46 + (m.step / 16000) * 564 %}
+      {% set my = 224 - (m.epsilon / 0.9) * 200 %}
+    <line class="chart-marker" x1="{{ mx }}" y1="{{ my }}" x2="{{ mx }}" y2="224"/>
+    <circle class="chart-point" cx="{{ mx }}" cy="{{ my }}" r="4"/>
+    <text class="chart-label" x="{{ mx + 8 }}" y="{{ my - 8 }}">{{ m.label }} · step {{ m.step | num }}</text>
+    {% endfor %}
+
+    <text class="chart-axis" x="328" y="256" text-anchor="middle">training steps</text>
+    <text class="chart-axis" x="14" y="30">ε</text>
+  </svg>
+  {% if caption %}<figcaption>{{ caption }}</figcaption>{% endif %}
+</figure>

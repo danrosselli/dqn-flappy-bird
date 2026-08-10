@@ -1,0 +1,17 @@
+{# ============================================================
+   Horizontal data-flow strip:
+   STATE → NETWORK → Q VALUES → ACTION → GAME → REWARD → MEMORY → TRAIN
+   ============================================================ #}
+{% set stages = ["State", "Network", "Q values", "Action", "Game", "Reward", "Memory", "Train"] %}
+<div class="pipeline" role="img" aria-label="Data flow: state, network, Q-values, action, game, reward, memory, train — in a continuous loop.">
+  <ol class="pipeline-track">
+    {% for stage in stages %}
+    <li class="pipeline-stage" style="--i: {{ loop.index0 }}">
+      <span class="pipeline-dot" aria-hidden="true"></span>
+      <span class="pipeline-name">{{ stage }}</span>
+    </li>
+    {% if not loop.last %}<li class="pipeline-link" aria-hidden="true"></li>{% endif %}
+    {% endfor %}
+  </ol>
+  <p class="pipeline-loopnote">one loop = one frame · ~60 loops per second</p>
+</div>

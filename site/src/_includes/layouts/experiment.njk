@@ -1,0 +1,169 @@
+---
+layout: layouts/base.njk
+---
+{% from "components/macros.njk" import metric, chip, placeholderNote %}
+{% set res = experiment.results %}
+{% set cfg = experiment.config %}
+{% set prevExp = pagination.previousItem %}
+
+<article class="experiment container" data-reveal-root>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="{{ '/' | url }}">Home</a></li>
+      <li><a href="{{ '/experiments/' | url }}">Experiments</a></li>
+      <li aria-current="page">#{{ experiment.id }}</li>
+    </ol>
+  </nav>
+
+  <header class="experiment-head panel" data-reveal>
+    <div class="experiment-head-main">
+      <p class="kicker">
+        <span class="kicker-rule" aria-hidden="true"></span>
+        EXPERIMENT {{ experiment.id }}
+        {% if experiment.placeholder %}<span class="status-tag">placeholder</span>{% endif %}
+      </p>
+      <h1>{{ experiment.title }}</h1>
+      {% if experiment.objective %}
+      <p class="lede">{{ experiment.objective }}</p>
+      {% else %}
+      <p class="lede lede-todo">Objective not documented yet — TODO in <code>experiments/{{ experiment.id }}/README.md</code>.</p>
+      {% endif %}
+    </div>
+    <div class="experiment-head-side">
+      {% if experiment.gitTag %}
+      <a class="git-ref" href="{{ site.repo }}/tree/{{ experiment.gitTag }}" rel="noopener">
+        <span class="git-ref-label">Source</span>
+        <span class="git-ref-value">{{ experiment.gitTag }}</span>
+      </a>
+      {% else %}
+      <span class="git-ref git-ref--none">
+        <span class="git-ref-label">Source</span>
+        <span class="git-ref-value">no tag yet</span>
+      </span>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if experiment.placeholder %}
+  {{ placeholderNote("This experiment entry is generated from placeholder data so the interface can be previewed. Real experiments appear automatically once experiments/" ~ experiment.id ~ "/ exists with config.json and results.json.") }}
+  {% endif %}
+
+  <section class="metric-row" aria-label="Headline metrics" data-reveal>
+    {{ metric("Best score", res.score.best | num if res and res.score and res.score.best is defined else "—", "", "best") }}
+    {{ metric("Average score", res.score.average | num if res and res.score and res.score.average is defined else "—") }}
+    {{ metric("Episodes", res.training.episodes | num if res and res.training and res.training.episodes is defined else "—") }}
+    {{ metric("Final ε", res.learning.finalEpsilon | fixed(2) if res and res.learning and res.learning.finalEpsilon is defined else "—") }}
+    {{ metric("Avg loss", res.learning.averageLoss | fixed(4) if res and res.learning and res.learning.averageLoss is defined else "—") }}
+  </section>
+
+  <div class="experiment-grid">
+    <div class="experiment-main">
+      <section class="block" data-reveal>
+        <h2>Hypothesis</h2>
+        {% if experiment.hypothesis %}
+        <p>{{ experiment.hypothesis }}</p>
+        {% else %}
+        <p class="todo-line">TODO — documented in the experiment README once the experiment is recorded.</p>
+        {% endif %}
+      </section>
+
+      <section class="block" data-reveal>
+        <h2>Changes</h2>
+        {% if experiment.changes and experiment.changes.length %}
+        <ul class="change-list">
+          {% for change in experiment.changes %}
+          <li>{{ change }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="todo-line">TODO — the experiment README lists exactly what changed relative to the previous run.</p>
+        {% endif %}
+      </section>
+
+      {% if experiment.series %}
+      <section class="block" data-reveal>
+        <h2>Score progression</h2>
+        {% include "components/series-chart.njk" %}
+        <p class="chart-caption">
+          Score per episode{% if experiment.placeholder %} — synthetic preview curve, not real training data{% endif %}.
+        </p>
+      </section>
+      {% endif %}
+
+      <section class="block" data-reveal>
+        <h2>Conclusion</h2>
+        {% if experiment.conclusion %}
+        <p>{{ experiment.conclusion }}</p>
+        {% else %}
+        <p class="todo-line">TODO — what was learned, and what should be tried next.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <aside class="experiment-side">
+      <section class="block side-panel" data-reveal>
+        <h2>Configuration</h2>
+        {% if cfg %}
+        {% for groupName, group in cfg %}
+          {% if groupName != "experiment" and group is iterable %}
+        <p class="config-group">{{ groupName }}</p>
+        <dl class="spec-list">
+          {% for key, value in group %}
+          <div class="spec-row">
+            <dt>{{ key }}</dt>
+            <dd>{{ value | configVal }}</dd>
+          </div>
+          {% endfor %}
+        </dl>
+          {% endif %}
+        {% endfor %}
+        {% else %}
+        <p class="todo-line">No <code>config.json</code> yet. The schema is defined in <code>experiments/README.md</code>.</p>
+        <dl class="spec-list">
+          <div class="spec-row"><dt>algorithm</dt><dd>DQN (current implementation)</dd></div>
+          <div class="spec-row"><dt>gamma</dt><dd>{{ impl.training.gamma }}</dd></div>
+          <div class="spec-row"><dt>ε decay</dt><dd>{{ impl.training.epsilonDecay }}</dd></div>
+          <div class="spec-row"><dt>batch size</dt><dd>{{ impl.training.batchSize }}</dd></div>
+          <div class="spec-row"><dt>network</dt><dd>8 → 512 → 256 → 128 → 64 → 2</dd></div>
+        </dl>
+        {% endif %}
+      </section>
+
+      {% if prevExp %}
+      <section class="block side-panel" data-reveal>
+        <h2>vs. previous</h2>
+        {% if res and res.score and prevExp.results and prevExp.results.score %}
+          {% set delta = res.score.best - prevExp.results.score.best %}
+        <p class="compare-delta{% if delta >= 0 %} is-up{% else %} is-down{% endif %}">
+          <span class="compare-value">{% if delta >= 0 %}+{% endif %}{{ delta | num }}</span>
+          <span class="compare-label">best score vs. <a href="{{ ('/experiments/' ~ prevExp.slug ~ '/') | url }}">#{{ prevExp.id }}</a></span>
+        </p>
+        {% else %}
+        <p class="todo-line">Comparison available once results exist.</p>
+        {% endif %}
+      </section>
+      {% endif %}
+    </aside>
+  </div>
+
+  <nav class="pager" aria-label="More experiments">
+    {% if prevExp %}
+    <a class="pager-link pager-prev" href="{{ ('/experiments/' ~ prevExp.slug ~ '/') | url }}">
+      <span class="pager-dir" aria-hidden="true">←</span>
+      <span>
+        <span class="pager-label">Previous experiment</span>
+        <span class="pager-title">#{{ prevExp.id }} — {{ prevExp.title }}</span>
+      </span>
+    </a>
+    {% else %}<span></span>{% endif %}
+    {% if pagination.nextItem %}
+    <a class="pager-link pager-next" href="{{ ('/experiments/' ~ pagination.nextItem.slug ~ '/') | url }}">
+      <span>
+        <span class="pager-label">Next experiment</span>
+        <span class="pager-title">#{{ pagination.nextItem.id }} — {{ pagination.nextItem.title }}</span>
+      </span>
+      <span class="pager-dir" aria-hidden="true">→</span>
+    </a>
+    {% else %}<span></span>{% endif %}
+  </nav>
+</article>

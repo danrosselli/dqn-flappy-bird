@@ -1,0 +1,68 @@
+---
+layout: layouts/base.njk
+---
+{% set coll = collections[collection] %}
+{% set sib = coll | withSiblings(page.url) %}
+
+<article class="article container" data-reveal-root>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="{{ '/' | url }}">Home</a></li>
+      <li><a href="{{ ('/' ~ section ~ '/') | url }}">{{ sectionTitle }}</a></li>
+      <li aria-current="page">{{ title }}</li>
+    </ol>
+  </nav>
+
+  <header class="article-head" data-reveal>
+    <p class="kicker">
+      <span class="kicker-rule" aria-hidden="true"></span>
+      {{ sectionTitle | upper }}{% if order %} · {{ order | pad(2) }}{% endif %}
+    </p>
+    <h1>{{ title }}</h1>
+    {% if description %}<p class="lede">{{ description }}</p>{% endif %}
+  </header>
+
+  <div class="article-grid">
+    <aside class="article-aside" aria-label="{{ sectionTitle }} pages">
+      <p class="aside-heading">{{ sectionTitle }}</p>
+      <ol class="aside-list">
+        {% for item in coll %}
+        <li>
+          <a
+            href="{{ item.url | url }}"
+            {% if item.url == page.url %}class="is-current" aria-current="page"{% endif %}
+          >
+            <span class="aside-num" aria-hidden="true">{{ loop.index | pad(2) }}</span>
+            <span>{{ item.data.title }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+    </aside>
+
+    <div class="prose" data-reveal>
+      {{ content | safe }}
+    </div>
+  </div>
+
+  <nav class="pager" aria-label="More in {{ sectionTitle }}">
+    {% if sib.prev %}
+    <a class="pager-link pager-prev" href="{{ sib.prev.url | url }}">
+      <span class="pager-dir" aria-hidden="true">←</span>
+      <span>
+        <span class="pager-label">Previous</span>
+        <span class="pager-title">{{ sib.prev.data.title }}</span>
+      </span>
+    </a>
+    {% else %}<span></span>{% endif %}
+    {% if sib.next %}
+    <a class="pager-link pager-next" href="{{ sib.next.url | url }}">
+      <span>
+        <span class="pager-label">Next</span>
+        <span class="pager-title">{{ sib.next.data.title }}</span>
+      </span>
+      <span class="pager-dir" aria-hidden="true">→</span>
+    </a>
+    {% else %}<span></span>{% endif %}
+  </nav>
+</article>

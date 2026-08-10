@@ -1,0 +1,44 @@
+{# ============================================================
+   Shared macros — parameterized building blocks
+   ============================================================ #}
+
+{# A single metric: mono label over a strong numeric value. #}
+{% macro metric(label, value, unit="", tone="") %}
+<div class="metric{% if tone %} metric--{{ tone }}{% endif %}">
+  <span class="metric-label">{{ label }}</span>
+  <span class="metric-value">{{ value }}{% if unit %}<span class="metric-unit">{{ unit }}</span>{% endif %}</span>
+</div>
+{% endmacro %}
+
+{# Small uppercase technical label / chip. #}
+{% macro chip(text, tone="") %}
+<span class="chip{% if tone %} chip--{{ tone }}{% endif %}">{{ text }}</span>
+{% endmacro %}
+
+{# Section kicker — small mono overline with rule. #}
+{% macro kicker(text) %}
+<p class="kicker"><span class="kicker-rule" aria-hidden="true"></span>{{ text }}</p>
+{% endmacro %}
+
+{# Placeholder / demo data notice. #}
+{% macro placeholderNote(text="The data below is illustrative placeholder content — no experiment results have been published yet.") %}
+<aside class="placeholder-note" role="note">
+  <span class="placeholder-note-badge">placeholder</span>
+  <p>{{ text }}</p>
+</aside>
+{% endmacro %}
+
+{# External reference entry. #}
+{% macro reference(ref, index) %}
+<li class="reference" id="ref-{{ index }}">
+  <span class="reference-index">[{{ index }}]</span>
+  <span class="reference-body">
+    <span class="reference-authors">{{ ref.authors }}</span>
+    <span class="reference-title">“{{ ref.title }}.”</span>
+    <span class="reference-venue">{{ ref.venue }}, {{ ref.year }}.</span>
+    {% if ref.url %}
+    <a class="reference-link" href="{{ ref.url }}" rel="noopener">{{ ref.label or ref.url }}</a>
+    {% endif %}
+  </span>
+</li>
+{% endmacro %}

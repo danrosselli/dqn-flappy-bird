@@ -1,0 +1,59 @@
+{# ============================================================
+   Agent ⇄ environment loop (the reinforcement learning cycle
+   as implemented in src/game/scenes/Game.js)
+   ============================================================ #}
+<figure class="loop-diagram" role="img"
+  aria-label="The learning loop: the environment sends an 8-value state and a reward to the DQN agent; the agent returns one of two actions. Experiences are stored in a replay memory that is sampled to train the network.">
+  <svg viewBox="0 0 720 380" fill="none" aria-hidden="true">
+    <rect class="ld-frame" x="1" y="1" width="718" height="378" rx="6"/>
+    <path class="ld-tick" d="M1 22V7a6 6 0 0 1 6-6h15M719 22V7a6 6 0 0 0-6-6h-15M1 358v15a6 6 0 0 0 6 6h15M719 358v15a6 6 0 0 1-6 6h-15"/>
+
+    <!-- environment -->
+    <g>
+      <rect class="ld-box" x="56" y="128" width="224" height="112" rx="8"/>
+      <text x="168" y="176" class="ld-title" text-anchor="middle">ENVIRONMENT</text>
+      <text x="168" y="198" class="ld-sub" text-anchor="middle">Flappy Bird · Phaser 3</text>
+      <text x="168" y="216" class="ld-sub ld-sub--dim" text-anchor="middle">1024 × 768 · arcade physics</text>
+    </g>
+
+    <!-- agent -->
+    <g>
+      <rect class="ld-box ld-box--agent" x="440" y="128" width="224" height="112" rx="8"/>
+      <text x="552" y="176" class="ld-title" text-anchor="middle">AGENT</text>
+      <text x="552" y="198" class="ld-sub" text-anchor="middle">DQN · TensorFlow.js</text>
+      <text x="552" y="216" class="ld-sub ld-sub--dim" text-anchor="middle">8 → 512 → 256 → 128 → 64 → 2</text>
+    </g>
+
+    <!-- state + reward flow -->
+    <g class="ld-flow">
+      <line x1="280" y1="152" x2="428" y2="152"/>
+      <path d="M428 152l-9-4.5v9z" class="ld-arrowhead"/>
+      <text x="354" y="140" class="ld-label" text-anchor="middle">state s<tspan dy="2" font-size="10">t</tspan><tspan dy="-2"> + reward r</tspan><tspan dy="2" font-size="10">t</tspan></text>
+    </g>
+
+    <!-- action flow -->
+    <g class="ld-flow">
+      <line x1="440" y1="212" x2="292" y2="212"/>
+      <path d="M292 212l9-4.5v9z" class="ld-arrowhead"/>
+      <text x="354" y="232" class="ld-label" text-anchor="middle">action a<tspan dy="2" font-size="10">t</tspan><tspan dy="-2"> ∈ { IDLE, FLAP }</tspan></text>
+    </g>
+
+    <!-- replay memory -->
+    <g>
+      <rect class="ld-box ld-box--memory" x="440" y="292" width="224" height="56" rx="8"/>
+      <text x="552" y="316" class="ld-label" text-anchor="middle">REPLAY MEMORY</text>
+      <text x="552" y="334" class="ld-sub ld-sub--dim" text-anchor="middle">50k transitions · batch 64</text>
+      <line class="ld-flow--dash" x1="552" y1="240" x2="552" y2="288"/>
+      <path d="M552 288l-4.5-9h9z" class="ld-arrowhead"/>
+      <text x="620" y="268" class="ld-sub ld-sub--dim" text-anchor="middle">train / 2 steps</text>
+    </g>
+
+    <!-- death loop note -->
+    <g class="ld-flow ld-flow--dash">
+      <path d="M168 240v44a10 10 0 0 0 10 10h196"/>
+      <path d="M374 294l9-4.5v9z" class="ld-arrowhead" transform="rotate(90 374 294)"/>
+      <text x="168" y="276" class="ld-label">death → save to IndexedDB → restart (gen +1)</text>
+    </g>
+  </svg>
+  {% if caption %}<figcaption>{{ caption }}</figcaption>{% endif %}
+</figure>

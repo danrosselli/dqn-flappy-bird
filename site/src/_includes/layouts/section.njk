@@ -1,0 +1,38 @@
+---
+layout: layouts/base.njk
+---
+<section class="container section-landing" data-reveal-root>
+  <header class="page-head" data-reveal>
+    <p class="kicker">
+      <span class="kicker-rule" aria-hidden="true"></span>
+      {{ kicker or (title | upper) }}
+    </p>
+    <h1>{{ title }}</h1>
+    {% if description %}<p class="lede">{{ description }}</p>{% endif %}
+  </header>
+
+  {% if content | trim %}
+  <div class="prose section-intro" data-reveal>
+    {{ content | safe }}
+  </div>
+  {% endif %}
+
+  {% if collection and collections[collection] %}
+  <ol class="index-list" data-reveal>
+    {% for item in collections[collection] %}
+    <li class="index-item">
+      <a href="{{ item.url | url }}">
+        <span class="index-num" aria-hidden="true">{{ loop.index | pad(2) }}</span>
+        <span class="index-body">
+          <span class="index-title">{{ item.data.title }}</span>
+          {% if item.data.description %}
+          <span class="index-desc">{{ item.data.description }}</span>
+          {% endif %}
+        </span>
+        <span class="index-arrow" aria-hidden="true">→</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</section>

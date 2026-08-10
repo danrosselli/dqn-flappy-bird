@@ -1,0 +1,15 @@
+{# ============================================================
+   The 8-value state vector, straight from impl.json
+   (which mirrors src/game/scenes/Game.js)
+   ============================================================ #}
+<div class="state-vector" role="list" aria-label="State vector components">
+  {% for item in impl.state %}
+  <div class="state-cell" role="listitem">
+    <span class="state-index" aria-hidden="true">s{{ loop.index0 }}</span>
+    <span class="state-key">{{ item.key }}</span>
+    <span class="state-label">{{ item.label }}</span>
+    <span class="state-formula">{{ item.formula }}</span>
+    <span class="state-range">{{ item.range }}</span>
+  </div>
+  {% endfor %}
+</div>
