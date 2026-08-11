@@ -7,16 +7,19 @@ export class NestedModel {
 		// Arquitetura: 8 → 64 → 64 → 64 → 32 → 2
 		this.layers = [];
 
-		// Camada 0: 8→64 (LENTA - memória longa)
+		// Camada 0: 8→64 (MUITO LENTA - memória longa)
 		this.layers.push(tf.layers.dense({ units: 64, activation: 'relu', inputShape: [8] }));
 
-		// Camada 1: 64→64 (MÉDIA)  
+		// Camada 1: 64→64 (LENTA)  
 		this.layers.push(tf.layers.dense({ units: 64, activation: 'relu' }));
 
-		// Camada 2: 64→64 (RÁPIDA)
+		// Camada 2: 64→64 (MÉDIA)  
 		this.layers.push(tf.layers.dense({ units: 64, activation: 'relu' }));
 
-		// Camada 3: 64→32 (NORMAL)
+		// Camada 3: 64→64 (RÁPIDA)
+		this.layers.push(tf.layers.dense({ units: 64, activation: 'relu' }));
+
+		// Camada 4: 64→32 (NORMAL)
 		this.layers.push(tf.layers.dense({ units: 32, activation: 'relu' }));
 
 		// Output: 32→2 (NORMAL)
@@ -24,10 +27,11 @@ export class NestedModel {
 
 		// Otimizadores escalonados (Rampa)
 		this.optimizers = [
-			{ opt: tf.train.adam(0.00001), freq: 100, name: 'Lento' },    // Layer 0
-			{ opt: tf.train.adam(0.0001), freq: 10, name: 'Médio' },    // Layer 1  
-			{ opt: tf.train.adam(0.001), freq: 1, name: 'Rápido' },   // Layer 2
-			{ opt: tf.train.adam(0.001), freq: 1, name: 'Normal' },   // Layer 3
+			{ opt: tf.train.adam(0.000001), freq: 1000, name: 'Muito Lento' },    // Layer 0
+			{ opt: tf.train.adam(0.00001), freq: 100, name: 'Lento' },    // Layer 1
+			{ opt: tf.train.adam(0.0001), freq: 10, name: 'Médio' },    // Layer 2
+			{ opt: tf.train.adam(0.001), freq: 1, name: 'Rápido' },   // Layer 3
+			{ opt: tf.train.adam(0.001), freq: 1, name: 'Normal' },   // Layer 4
 			{ opt: tf.train.adam(0.001), freq: 1, name: 'Normal' }    // Output
 		];
 
@@ -98,9 +102,6 @@ export class NestedModel {
 					throw e;
 				}
 
-				if (this.step % 500 === 0) {
-					console.log(`Step ${this.step}: Camada ${i} (${name}) atualizada`);
-				}
 			}
 		}
 
