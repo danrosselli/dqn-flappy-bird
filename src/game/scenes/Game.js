@@ -380,7 +380,7 @@ export class Game extends Phaser.Scene {
 				z.scored = true;
 				this.score++;
 				this.scoreText.setText('Score: ' + this.score);
-				do  = 10;
+				this.bonusReward = 10;
 			}
 		});
 	}
