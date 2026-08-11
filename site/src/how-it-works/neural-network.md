@@ -1,7 +1,7 @@
 ---
 layout: layouts/article.njk
 title: Neural Network
-description: The policy network — 8 → 512 → 256 → 128 → 64 → 2, 177,218 parameters, trained in the browser with TensorFlow.js.
+description: The policy network — 8 → 64 → 64 → 2, 4,866 parameters, trained in the browser with TensorFlow.js.
 section: how-it-works
 sectionTitle: How It Works
 collection: howItWorks

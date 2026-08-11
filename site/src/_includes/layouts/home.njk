@@ -132,7 +132,7 @@ layout: layouts/base.njk
       <h2>Eight numbers in.<br>Two Q-values out.</h2>
       <p>
         The policy network is a fully-connected stack —
-        <strong>8 → 512 → 256 → 128 → 64 → 2</strong> — trained with Adam on mean-squared
+        <strong>8 → 64 → 64 → 2</strong> — trained with Adam on mean-squared
         error. A frozen target network, synced every {{ impl.training.targetUpdateFreq | num }} steps,
         keeps the bootstrapped targets stable.
       </p>

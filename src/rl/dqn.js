@@ -50,15 +50,18 @@ export class DQNAgent {
   createModel() {
     const model = tf.sequential();
 
-    model.add(tf.layers.dense({ units: 512, activation: 'relu', inputShape: [8] }));
-    model.add(tf.layers.dense({ units: 256, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 128, activation: 'relu' }));
+    // Input de 8 para 64 neurônios
+    model.add(tf.layers.dense({ units: 64, activation: 'relu', inputShape: [8] }));
+    
+    // 64 neurônios
     model.add(tf.layers.dense({ units: 64, activation: 'relu' }));
+    
+    // Camada de saída (2 ações)
     model.add(tf.layers.dense({ units: 2, activation: 'linear' }));
 
     model.compile({
-      optimizer: tf.train.adam(LEARNING_RATE),
-      loss: 'meanSquaredError'
+        optimizer: tf.train.adam(LEARNING_RATE),
+        loss: 'meanSquaredError'
     });
 
     return model;

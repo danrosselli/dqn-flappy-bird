@@ -48,13 +48,11 @@
   "network": {
     "input": 8,
     "layers": [
-      { "units": 512, "activation": "relu", "params": 4608 },
-      { "units": 256, "activation": "relu", "params": 131328 },
-      { "units": 128, "activation": "relu", "params": 32896 },
-      { "units": 64, "activation": "relu", "params": 8256 }
+      { "units": 64, "activation": "relu", "params": 576 },
+      { "units": 64, "activation": "relu", "params": 4160 }
     ],
     "output": { "units": 2, "activation": "linear", "params": 130 },
-    "totalParams": 177218,
+    "totalParams": 4866,
     "optimizer": "Adam (lr 0.001)",
     "loss": "Mean squared error",
     "outputMeaning": "One Q-value per action: Q(s, IDLE) and Q(s, FLAP)."

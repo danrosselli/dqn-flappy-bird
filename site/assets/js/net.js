@@ -2,7 +2,7 @@
  * Neural network visualization (homepage + network page)
  * ------------------------------------------------------------
  * Canvas 2D rendering of the policy network
- * (8 → 512 → 256 → 128 → 64 → 2, drawn schematically).
+ * (8 → 64 → 64 → 2, drawn schematically).
  * Pulses travel input → output, echoing a forward pass.
  * Pauses offscreen / hidden tab / reduced motion.
  * ============================================================ */
@@ -24,10 +24,8 @@
   /* Real architecture, drawn with representative node counts */
   const LAYERS = [
     { units: 8, drawn: 8, label: "8", sub: "state" },
-    { units: 512, drawn: 6, label: "512", sub: "relu" },
-    { units: 256, drawn: 5, label: "256", sub: "relu" },
-    { units: 128, drawn: 4, label: "128", sub: "relu" },
-    { units: 64, drawn: 3, label: "64", sub: "relu" },
+    { units: 64, drawn: 4, label: "64", sub: "relu" },
+    { units: 64, drawn: 4, label: "64", sub: "relu" },
     { units: 2, drawn: 2, label: "2", sub: "Q-values" },
   ];
 
