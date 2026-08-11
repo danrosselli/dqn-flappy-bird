@@ -149,18 +149,31 @@ export class Game extends Phaser.Scene {
 			}
 		}
 
-		// Normalização precisa: 200 → 0.0, 400 → 1.0
-		const normalizedSpeed = (pipeSpeed - 200) / 200; // (400 - 200) = 200
-		const normalizedGap = (gapHeight - 200) / 210; // (410 - 200) = 210
-		const normalizedGapNext = (gapNext - 200) / 210;
+		// Normaliza velocidade de 200 a 400 para o intervalo [-1, 1]
+		// 200 -> -1.0 | 300 -> 0.0 | 400 -> +1.0
+		const normalizedSpeed = ((pipeSpeed - 200) / 100) - 1;
+
+		// Normaliza dx (que no seu código vai de 0 a 1058) para o intervalo [-1, 1]
+		// 0 -> -1.0 | 529 -> 0.0 | 1058 -> +1.0
+		const normalizedDx = (dx / 529) - 1;
+		const normalizedDxNext = (dxNext / 529) - 1;
+
+		// Gaps (200 a 410) para [-1, 1]
+		const normalizedGap = ((gapHeight - 200) / 105) - 1;
+		const normalizedGapNext = ((gapNext - 200) / 105) - 1;
+
+		// dy e velY já oscilam entre negativo e positivo, só ajuste o limite
+		const normalizedDy = Math.max(-1, Math.min(1, dy / 400));
+		const normalizedDyNext = Math.max(-1, Math.min(1, dyNext / 400));
+		const normalizedVelY = Math.max(-1, Math.min(1, velY / 1000));
 
 		const currentState = [
-			dx / 1058,
-			dy / 400,
-			velY / 1000,
+			normalizedDx,
+			normalizedDy,
+			normalizedVelY,
 			normalizedGap,
-			dxNext / 1058,
-			dyNext / 400,
+			normalizedDxNext,
+			normalizedDyNext,
 			normalizedGapNext,
 			normalizedSpeed
 		];
@@ -367,7 +380,7 @@ export class Game extends Phaser.Scene {
 				z.scored = true;
 				this.score++;
 				this.scoreText.setText('Score: ' + this.score);
-				this.bonusReward = 10;
+				do  = 10;
 			}
 		});
 	}
