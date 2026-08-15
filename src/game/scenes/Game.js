@@ -179,7 +179,7 @@ export class Game extends Phaser.Scene {
 		];
 
 		// 2. Calcular Recompensa de Proximidade (nova versão mais estável)
-		const survivalReward = 0.1;  // Pequeno incentivo fixo por frame vivo
+		const survivalReward = 0.05;  // Pequeno incentivo fixo por frame vivo
 
 		// Penalidade leve por velocidade vertical extrema (evita loops infinitos de flap)
 		const velPenalty = Math.abs(velY) > 700 ? -0.05 : 0;
@@ -233,7 +233,7 @@ export class Game extends Phaser.Scene {
 		let actionStr = "IDLE";
 		if (action === ACTION_FLAP) {
 			actionStr = "FLAP";
-			if (this.bird.body.velocity.y > -180) {
+			if (this.bird.body.velocity.y > -200) {
 				this.flap();
 			}
 		}
