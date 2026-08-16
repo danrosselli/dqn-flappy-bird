@@ -4,7 +4,7 @@
 export class ReplayBuffer {
 	constructor(recentSize = 10000, reservoirSize = 40000) {
 
-		this.bufferSize = 50000;
+		this.bufferSize = recentSize + reservoirSize; // Tamanho total do buffer (legado)
 		this.reservoirSize = reservoirSize;
 		this.recentSize = recentSize;
 
