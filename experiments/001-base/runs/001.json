@@ -1,0 +1,30 @@
+{
+  "run": 1,
+  "createdAt": "2026-08-12T00:30:00-03:00",
+
+  "parameters": {
+    "learningRate": 0.0005,
+    "gamma": 0.95,
+    "batchSize": 64,
+    "episodes": 100000
+  },
+
+  "rewards": {
+    "survival": 0,
+    "passPipe": 1,
+    "collision": -10,
+    "gameOver": -10
+  },
+
+  "exploration": {
+    "epsilonStart": 1.0,
+    "epsilonMin": 0.05,
+    "epsilonDecay": 0.995
+  },
+
+  "results": {
+    "bestScore": 485
+  },
+
+  "notes": "Lower learning rate produced more stable training."
+}

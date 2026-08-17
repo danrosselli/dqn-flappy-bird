@@ -15,7 +15,7 @@ import { PersistenceManager } from './persistenceManager.js';
 export const ACTION_FLAP = 1;
 export const ACTION_IDLE = 0;
 export const ACTIONS = [ACTION_IDLE, ACTION_FLAP];
-export const STATE_SIZE = 8;
+export const STATE_SIZE = 9;
 
 /* ------------------------------------------------------------
  * HYPERPARAMETERS
