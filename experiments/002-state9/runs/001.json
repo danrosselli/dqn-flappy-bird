@@ -23,7 +23,7 @@
   },
 
   "results": {
-    "bestScore": 485
+    "bestScore": 366
   },
 
   "notes": "Lower learning rate produced more stable training."

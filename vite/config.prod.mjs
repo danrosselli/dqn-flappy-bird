@@ -18,6 +18,7 @@ const phasermsg = () => {
 
 export default defineConfig({
 	base: './',
+	publicDir: '../../public',
 	logLevel: 'warn',
 	build: {
 		rollupOptions: {
