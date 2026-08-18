@@ -49,15 +49,18 @@ section: demo
     <p>
       The demo is deployed straight from the repository. To run the training
       environment locally — or to reset the brain and start from generation 1 —
-      clone the repo and use Bun:
+      clone the repo, install dependencies, and pick an experiment:
     </p>
     <pre><code>git clone https://github.com/danrosselli/dqn-flappy-bird.git
 cd dqn-flappy-bird
 bun install
+cd experiments/001-base
 bun run dev</code></pre>
     <p>
-      The game dev server starts on <code>localhost:8080</code>. Everything the agent
-      learns stays in your browser; nothing leaves your machine.
+      The game dev server starts on <code>localhost:8080</code>. Switch to any
+      experiment directory (<code>002-state9</code>, etc.) to try a different
+      configuration. Everything the agent learns stays in your browser; nothing
+      leaves your machine.
     </p>
   </div>
 </section>

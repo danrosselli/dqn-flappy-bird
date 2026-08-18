@@ -1442,6 +1442,7 @@ tbody tr:hover .exp-bar-fill { background: var(--accent-strong); }
 .demo-start-btn {
   white-space: nowrap;
 }
+[hidden] { display: none !important; }
 .demo-stage {
   position: relative;
   aspect-ratio: 4 / 3;
