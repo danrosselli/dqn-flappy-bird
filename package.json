@@ -15,10 +15,10 @@
     },
     "homepage": "https://github.com/phaserjs/template-vite#readme",
     "scripts": {
-        "dev": "echo \"Erro: Entre no diretório do experimento primeiro.\nExemplo: cd experiments/001-base && bun run dev\n\nExperiments disponíveis:\" && ls experiments/",
-        "build": "echo \"Erro: Entre no diretório do experimento primeiro.\nExemplo: cd experiments/001-base && bun run build\"",
-        "dev-nolog": "echo \"Erro: Entre no diretório do experimento primeiro.\nExemplo: cd experiments/001-base && bun run dev\"",
-        "build-nolog": "echo \"Erro: Entre no diretório do experimento primeiro.\nExemplo: cd experiments/001-base && bun run build\""
+        "dev": "echo -e \"Para rodar um experimento, entre no diretório do experimento:\\n  cd experiments/001-base && bun run dev\\n\\nPara rodar o site de documentação:\\n  cd site && bun run dev\"",
+        "build": "echo -e \"Para buildar um experimento, entre no diretório do experimento:\\n  cd experiments/001-base && bun run build\\n\\nPara buildar o site de documentação:\\n  cd site && bun run build\"",
+        "dev-nolog": "echo -e \"Para rodar um experimento (sem log), entre no diretório do experimento:\\n  cd experiments/001-base && bun run dev\"",
+        "build-nolog": "echo -e \"Para buildar um experimento (sem log), entre no diretório do experimento:\\n  cd experiments/001-base && bun run build\""
     },
     "devDependencies": {
         "terser": "^5.39.0",
