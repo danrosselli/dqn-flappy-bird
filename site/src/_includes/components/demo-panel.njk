@@ -1,33 +1,44 @@
 {# ============================================================
    Live Demo integration point.
-   The game is the agent: when the Vite production bundle is
-   present (built by CI into /game/), it is embedded here.
-   Otherwise an honest setup panel is shown. No game code is
-   duplicated into the site.
+   The game is the agent: when the Vite production bundles are
+   present (built by CI into /game/{slug}/), one is embedded
+   here on demand. The user picks an experiment and clicks Start.
    ============================================================ #}
-<div class="demo-frame" data-demo-frame data-demo-src="{{ '/game/index.html' | url }}">
-  <div class="demo-stage">
-    <div class="demo-loading" data-demo-loading>
+<div class="demo-frame" data-demo-frame data-experiments="{{ experiments.list | json }}">
+  <div class="demo-controls" data-demo-controls>
+    <label class="demo-select-label" for="demo-experiment">Experiment</label>
+    <select class="demo-select" id="demo-experiment" data-demo-select>
+      {% for exp in experiments.list %}
+      <option value="{{ exp.slug }}">{{ exp.id }} — {{ exp.title }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn demo-start-btn" data-demo-start type="button">Start</button>
+  </div>
+
+  <div class="demo-stage" data-demo-stage>
+    <div class="demo-stage-hint" data-demo-hint>
+      <p>Select an experiment and click <strong>Start</strong> to launch the agent.</p>
+    </div>
+    <div class="demo-loading" data-demo-loading hidden>
       <span class="status-dot status-dot--lg" data-mode="demo" aria-hidden="true"></span>
-      <p>Checking for the game bundle…</p>
+      <p>Loading game bundle…</p>
     </div>
   </div>
 
   <div class="demo-fallback" data-demo-fallback hidden>
     <div class="demo-fallback-inner">
-      <p class="demo-fallback-title">The demo bundle is not deployed yet</p>
+      <p class="demo-fallback-title">Game bundle not found</p>
       <p>
-        The live demo embeds the exact game from this repository — the agent trains
-        itself autonomously in your browser and persists progress to IndexedDB.
-        It appears here automatically once the deployment workflow builds the game into
-        <code>/game/</code>.
+        The selected experiment has not been built yet. Deploy the site
+        with CI to have all experiment bundles built automatically, or
+        run one locally:
       </p>
       <p class="demo-fallback-cmd">
-        <span class="demo-cmd-label">Run it locally instead:</span>
-        <code>bun install && bun run dev</code>
+        <span class="demo-cmd-label">Run locally:</span>
+        <code>cd experiments/001-base && bun run dev</code>
       </p>
       <p>
-        <a class="btn btn--ghost" href="{{ site.repo }}" rel="noopener">View the game source on GitHub</a>
+        <a class="btn btn--ghost" href="{{ site.repo }}" rel="noopener">View the source on GitHub</a>
       </p>
     </div>
   </div>

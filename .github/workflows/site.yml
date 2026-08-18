@@ -48,12 +48,19 @@ jobs:
         working-directory: site
         run: bun run build
 
-      - name: Build game bundle for the Live Demo
+      - name: Build game bundles for the Live Demo
         run: |
           bun install
-          bun run build-nolog
+          bun run build-all
           mkdir -p site/_site/game
-          cp -r dist/. site/_site/game/
+          for dir in experiments/*/; do
+            slug=$(basename "$dir")
+            if [ -d "$dir/dist" ]; then
+              echo "Copying $slug → site/_site/game/$slug/"
+              mkdir -p "site/_site/game/$slug"
+              cp -r "$dir/dist"/. "site/_site/game/$slug/"
+            fi
+          done
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

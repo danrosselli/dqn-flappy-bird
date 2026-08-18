@@ -91,34 +91,67 @@
   });
 
   /* ------------------------------------------------------------
-   * Live demo — embed the game bundle when CI has produced it
+   * Live demo — experiment selector + on-demand game loading
    * ---------------------------------------------------------- */
   const demoFrame = document.querySelector("[data-demo-frame]");
 
   if (demoFrame) {
-    const src = demoFrame.getAttribute("data-demo-src");
-    const stage = demoFrame.querySelector(".demo-stage");
+    const stage = demoFrame.querySelector("[data-demo-stage]");
     const loading = demoFrame.querySelector("[data-demo-loading]");
     const fallback = demoFrame.querySelector("[data-demo-fallback]");
+    const hint = demoFrame.querySelector("[data-demo-hint]");
+    const startBtn = demoFrame.querySelector("[data-demo-start]");
+    const select = demoFrame.querySelector("[data-demo-select]");
+    const controls = demoFrame.querySelector("[data-demo-controls]");
+    let currentIframe = null;
 
     const showFallback = () => {
       if (loading) loading.hidden = true;
+      if (hint) hint.hidden = true;
       if (fallback) fallback.hidden = false;
     };
 
-    const showGame = () => {
-      if (!stage) return;
-      const iframe = document.createElement("iframe");
-      iframe.src = src;
-      iframe.title = "DQN Flappy Bird — the agent training live in your browser";
-      iframe.loading = "lazy";
-      iframe.setAttribute("allow", "autoplay; fullscreen; cross-origin-isolated");
-      stage.appendChild(iframe);
+    const hideAll = () => {
       if (loading) loading.hidden = true;
+      if (fallback) fallback.hidden = true;
     };
 
-    fetch(src, { method: "HEAD" })
-      .then((res) => (res.ok ? showGame() : showFallback()))
-      .catch(showFallback);
+    const teardown = () => {
+      if (currentIframe) {
+        currentIframe.remove();
+        currentIframe = null;
+      }
+      hideAll();
+    };
+
+    const launchExperiment = (slug) => {
+      teardown();
+      if (hint) hint.hidden = true;
+      if (loading) loading.hidden = false;
+
+      const src = `/dqn-flappy-bird/game/${slug}/index.html`;
+      fetch(src, { method: "HEAD" })
+        .then((res) => {
+          if (!res.ok) return showFallback();
+          if (!stage) return;
+          const iframe = document.createElement("iframe");
+          iframe.src = src;
+          iframe.title = "DQN Flappy Bird — the agent training live in your browser";
+          iframe.loading = "lazy";
+          iframe.setAttribute("allow", "autoplay; fullscreen; cross-origin-isolated");
+          stage.appendChild(iframe);
+          currentIframe = iframe;
+          if (loading) loading.hidden = true;
+        })
+        .catch(showFallback);
+    };
+
+    if (startBtn && select) {
+      startBtn.addEventListener("click", () => {
+        const slug = select.value;
+        if (!slug) return;
+        launchExperiment(slug);
+      });
+    }
   }
 })();

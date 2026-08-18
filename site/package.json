@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "eleventy --serve",
     "build": "eleventy",
+    "build:full": "cd .. && bun run build-all && cd site && bun run build && cd .. && for dir in experiments/*/; do slug=$(basename \"$dir\"); if [ -d \"$dir/dist\" ]; then mkdir -p \"site/_site/game/$slug\" && cp -r \"$dir/dist\"/. \"site/_site/game/$slug/\"; fi; done",
     "clean": "rm -rf _site"
   },
   "devDependencies": {

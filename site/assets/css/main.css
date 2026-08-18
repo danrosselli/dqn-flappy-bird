@@ -1406,6 +1406,42 @@ tbody tr:hover .exp-bar-fill { background: var(--accent-strong); }
    15. Demo
    ---------------------------------------------------------- */
 .demo-frame { position: relative; }
+.demo-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.demo-select-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.demo-select {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+.demo-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.demo-start-btn {
+  white-space: nowrap;
+}
 .demo-stage {
   position: relative;
   aspect-ratio: 4 / 3;
@@ -1422,6 +1458,18 @@ tbody tr:hover .exp-bar-fill { background: var(--accent-strong); }
   width: 100%;
   height: 100%;
   border: 0;
+}
+.demo-stage-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-inverse-2);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  text-align: center;
+  padding: 1rem;
 }
 .demo-loading {
   position: absolute;
