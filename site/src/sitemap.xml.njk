@@ -8,6 +8,7 @@ eleventyExcludeFromCollections: true
 {% if item.url and not item.data.eleventyExcludeFromCollections %}
   <url>
     <loc>{{ site.url }}{{ item.url | url }}</loc>
+    {% if item.data.updated %}<lastmod>{{ item.data.updated | dateISO }}</lastmod>{% elif item.data.date %}<lastmod>{{ item.data.date | dateISO }}</lastmod>{% endif %}
   </url>
 {% endif %}
 {% endfor %}

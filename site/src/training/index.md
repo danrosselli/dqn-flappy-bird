@@ -1,10 +1,11 @@
 ---
 layout: layouts/section.njk
 title: Training
-description: Inside the laboratory — the training loop, exploration vs. exploitation, the replay memory, and the continuous learning cycle that drives the project.
+description: Inside the DQN training loop — exploration vs. exploitation, experience replay, target network sync, and the continuous learning cycle in the browser.
 section: training
-kicker: Training
+kickr: Training
 collection: training
+keywords: ["training loop", "epsilon decay", "replay memory", "experience replay", "target network"]
 ---
 
 Training is not a phase that ended; it is the default state of the system. This

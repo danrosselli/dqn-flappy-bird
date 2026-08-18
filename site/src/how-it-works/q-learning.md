@@ -7,6 +7,7 @@ sectionTitle: How It Works
 collection: howItWorks
 tags: how-it-works
 order: 6
+keywords: ["q-learning", "bellman equation", "temporal difference", "q-values"]
 ---
 
 Q-learning learns a function **Q(s, a)**: *"how good is action `a` in state `s`,

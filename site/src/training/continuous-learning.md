@@ -7,6 +7,7 @@ sectionTitle: Training
 collection: training
 tags: training
 order: 4
+keywords: ["continuous learning", "indexeddb", "persistent training", "browser training"]
 ---
 
 Most game-AI demos train once, record a video, and stop. This project is built around

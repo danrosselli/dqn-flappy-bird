@@ -7,6 +7,7 @@ sectionTitle: How It Works
 collection: howItWorks
 tags: how-it-works
 order: 4
+keywords: ["action space", "flap idle", "dqn actions", "binary actions"]
 ---
 
 The action space is as small as reinforcement learning allows: **two discrete actions**.

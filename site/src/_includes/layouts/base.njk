@@ -11,6 +11,11 @@
 
   <title>{{ pageTitle }}</title>
   <meta name="description" content="{{ pageDesc }}">
+  {% set allKeywords = site.keywords %}
+  {% if keywords %}
+    {% set allKeywords = keywords.concat(site.keywords) %}
+  {% endif %}
+  <meta name="keywords" content="{{ allKeywords | join(', ') }}">
   <link rel="canonical" href="{{ canonical }}">
 
   <meta property="og:type" content="website">
@@ -46,7 +51,10 @@
         "name": "{{ site.title }}",
         "description": "{{ site.description }}",
         "publisher": { "@id": "{{ site.url }}/#person" },
-        "inLanguage": "{{ site.lang }}"
+        "inLanguage": "{{ site.lang }}",
+        "about": { "@type": "Thing", "name": "Reinforcement Learning" },
+        "keywords": "{{ site.keywords | join(', ') }}",
+        "programmingLanguage": ["JavaScript", "TypeScript"]
       },
       {
         "@type": "Person",

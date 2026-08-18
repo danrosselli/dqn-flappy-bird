@@ -7,6 +7,7 @@ sectionTitle: How It Works
 collection: howItWorks
 tags: how-it-works
 order: 7
+keywords: ["neural network", "deep q-network", "tensorflow.js model", "fully connected"]
 scripts:
   - /assets/js/net.js
 ---

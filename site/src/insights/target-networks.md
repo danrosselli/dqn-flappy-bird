@@ -7,6 +7,7 @@ tags: insight
 category: architecture
 order: 4
 updated: 2026-08-10
+keywords: ["target network", "overestimation", "stable learning", "deadly triad"]
 keyIdea: "Bootstrapping + function approximation + off-policy learning is the 'deadly triad'; the target network doesn't remove the danger, but it slows the feedback loop enough for training to converge in practice."
 relatedExperiments: []
 references:

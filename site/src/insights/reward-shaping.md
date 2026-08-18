@@ -7,6 +7,7 @@ tags: insight
 category: reward
 order: 1
 updated: 2026-08-10
+keywords: ["reward shaping", "dense rewards", "credit assignment", "gaussian reward"]
 keyIdea: Dense, well-shaped rewards can turn an unlearnable sparse task into a tractable one — but every shaped term is a hypothesis about good behavior, and the agent will exploit whatever the hypothesis gets wrong.
 relatedExperiments: []
 references:

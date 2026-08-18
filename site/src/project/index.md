@@ -3,6 +3,7 @@ layout: layouts/section.njk
 title: The Project
 description: What DQN Flappy Bird is, why it exists, and how it evolves — an ongoing reinforcement learning experiment documented as a public lab notebook.
 section: project
+keywords: ["project", "open source", "lab notebook", "reinforcement learning project"]
 ---
 
 ## What is this?

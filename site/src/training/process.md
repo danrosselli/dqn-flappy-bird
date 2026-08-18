@@ -7,6 +7,7 @@ sectionTitle: Training
 collection: training
 tags: training
 order: 1
+keywords: ["training loop", "per-frame training", "batch sampling", "dqn training"]
 ---
 
 There is no separate training script. Training happens **inside the game loop**, one

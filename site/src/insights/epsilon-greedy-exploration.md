@@ -7,6 +7,7 @@ tags: insight
 category: exploration
 order: 2
 updated: 2026-08-10
+keywords: ["epsilon greedy", "exploration strategy", "bandit problem", "action selection"]
 keyIdea: In environments where random actions are lethal, uniform ε-greedy exploration is silently domain-hostile; biasing the explore branch toward survivable actions injects domain knowledge without touching the learned policy.
 relatedExperiments: []
 references:

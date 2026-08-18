@@ -1,6 +1,7 @@
 {
   "title": "DQN Flappy Bird",
-  "description": "Teaching an agent to play Flappy Bird using Deep Q-Learning. An ongoing reinforcement learning experiment — continuously trained, evaluated, modified, and improved.",
+  "description": "A DQN reinforcement learning agent that learns to play Flappy Bird autonomously — game, neural network, and training loop all running in the browser with TensorFlow.js and Phaser 3.",
+  "keywords": ["dqn", "flappy bird", "reinforcement learning", "deep q-learning", "tensorflow.js", "browser ai", "machine learning", "neural network", "javascript", "phaser 3"],
   "tagline": "The agent is learning. The project is learning with it.",
   "url": "https://danrosselli.github.io",
   "base": "/dqn-flappy-bird/",

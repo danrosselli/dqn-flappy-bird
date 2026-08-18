@@ -7,6 +7,7 @@ sectionTitle: How It Works
 collection: howItWorks
 tags: how-it-works
 order: 1
+keywords: ["phaser 3", "flappy bird game", "game environment", "arcade physics"]
 ---
 
 The environment is a Flappy Bird game built with **Phaser 3.90** and its Arcade physics

@@ -7,6 +7,7 @@ sectionTitle: How It Works
 collection: howItWorks
 tags: how-it-works
 order: 5
+keywords: ["reward function", "reward shaping", "sparse vs dense rewards", "credit assignment"]
 ---
 
 The reward function is the only supervision the agent ever receives. Every behavior

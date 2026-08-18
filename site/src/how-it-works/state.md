@@ -7,6 +7,7 @@ sectionTitle: How It Works
 collection: howItWorks
 tags: how-it-works
 order: 3
+keywords: ["state vector", "observation space", "flappy bird state", "normalized inputs"]
 ---
 
 The agent sees the world as a vector of **8 continuous, normalized values**, rebuilt

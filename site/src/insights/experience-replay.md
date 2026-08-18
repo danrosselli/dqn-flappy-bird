@@ -7,6 +7,7 @@ tags: insight
 category: replay
 order: 3
 updated: 2026-08-10
+keywords: ["experience replay", "replay buffer", "sample efficiency", "prioritized replay"]
 keyIdea: "Replay decorrelates training data and multiplies the value of rare events — but 'which past deserves to be re-sampled' is its own research question, which is why this codebase keeps six samplers alive."
 relatedExperiments: []
 references:

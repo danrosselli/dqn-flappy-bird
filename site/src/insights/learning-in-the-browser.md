@@ -7,6 +7,7 @@ tags: insight
 category: training
 order: 5
 updated: 2026-08-10
+keywords: ["browser ai", "tensorflow.js", "client-side ml", "webgl compute"]
 keyIdea: "Running RL in the browser trades reproducibility for accessibility — anyone's GPU becomes a training node, but wall-clock pacing, tab lifecycle, and unseeded randomness make strict experiment protocol a discipline, not a default."
 relatedExperiments: []
 references:

@@ -7,6 +7,7 @@ sectionTitle: How It Works
 collection: howItWorks
 tags: how-it-works
 order: 2
+keywords: ["dqn agent", "epsilon greedy", "experience replay", "deep q-learning agent"]
 ---
 
 The agent is a **Deep Q-Network** implemented with TensorFlow.js (WebGL backend).

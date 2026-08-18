@@ -1,10 +1,11 @@
 ---
 layout: layouts/section.njk
 title: How It Works
-description: The complete mechanism — the game environment, the agent, the state vector, actions, rewards, Q-learning, and the neural network, documented from the actual source code.
+description: The complete DQN mechanism — state vector, actions, rewards, Q-learning, and the neural network — documented from the actual TensorFlow.js source code.
 section: how-it-works
-kicker: How it works
+kickr: How it works
 collection: howItWorks
+keywords: ["dqn architecture", "state vector", "neural network", "q-values", "deep q-learning"]
 ---
 
 Everything in this section is documented **from the implementation**, not from generic

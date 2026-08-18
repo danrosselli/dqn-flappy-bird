@@ -7,6 +7,7 @@ sectionTitle: Training
 collection: training
 tags: training
 order: 3
+keywords: ["replay memory", "experience buffer", "correlation breaking", "reservoir sampling"]
 ---
 
 Online Q-learning from a raw frame stream learns from a firehose of nearly identical
