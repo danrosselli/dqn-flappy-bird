@@ -3,28 +3,29 @@
   "createdAt": "2026-08-12T00:30:00-03:00",
 
   "parameters": {
-    "learningRate": 0.0005,
-    "gamma": 0.95,
+    "learningRate": 0.001,
+    "gamma": 0.99,
     "batchSize": 64,
-    "episodes": 100000
+    "episodes": 100000,
+    "targetUpdateFreq": 1000,
+    "trainThrottle": 2
   },
 
   "rewards": {
-    "survival": 0,
-    "passPipe": 1,
-    "collision": -10,
-    "gameOver": -10
+    "survival": 0.05,
+    "passPipe": 10,
+    "collision": -20,
+    "velocityPenalty": -0.05,
+    "proximity": "gaussian(absDy / (scale.height/2), sigma=0.5) - 0.35, clamped >= -1.0"
   },
 
   "exploration": {
-    "epsilonStart": 1.0,
-    "epsilonMin": 0.05,
-    "epsilonDecay": 0.995
+    "epsilonStart": 0.9,
+    "epsilonMin": 0.0,
+    "epsilonDecay": 0.9995
   },
 
   "results": {
     "bestScore": 366
-  },
-
-  "notes": "Lower learning rate produced more stable training."
+  }
 }

@@ -1,0 +1,49 @@
+{
+  "name": "001-base",
+  "description": "DQN Flappy Bird com estado de 8 dimensões",
+  "stateSize": 8,
+  "stateFeatures": [
+    {"name": "dx", "description": "Distância horizontal ao cano atual", "normalization": "(dx / 529) - 1, range [-1, +1]"},
+    {"name": "dy", "description": "Distância vertical ao centro do gap do cano atual", "normalization": "clamp(dy / 400, -1, 1)"},
+    {"name": "velY", "description": "Velocidade vertical do pássaro", "normalization": "clamp(velY / 1000, -1, 1)"},
+    {"name": "gap", "description": "Altura do gap do cano atual", "normalization": "((gap - 200) / 105) - 1, range [-1, +1]"},
+    {"name": "dxNext", "description": "Distância horizontal ao próximo cano", "normalization": "(dx / 529) - 1, range [-1, +1]"},
+    {"name": "dyNext", "description": "Distância vertical ao centro do gap do próximo cano", "normalization": "clamp(dy / 400, -1, 1)"},
+    {"name": "gapNext", "description": "Altura do gap do próximo cano", "normalization": "((gap - 200) / 105) - 1, range [-1, +1]"},
+    {"name": "speed", "description": "Velocidade atual dos canos", "normalization": "((speed - 200) / 100) - 1, range [-1, +1]"}
+  ],
+  "terminalState": [0, 0, 0, 0, 0, 0, 0, 0],
+  "network": {
+    "architecture": "sequential",
+    "layers": [
+      {"type": "dense", "units": 64, "activation": "relu", "inputShape": 8},
+      {"type": "dense", "units": 64, "activation": "relu"},
+      {"type": "dense", "units": 2, "activation": "linear"}
+    ],
+    "optimizer": "adam",
+    "optimizerParams": {"learningRate": 0.001},
+    "loss": "meanSquaredError",
+    "targetNetwork": true
+  },
+  "buffer": {
+    "type": "hybrid-reservoir",
+    "activeStrategy": "sampleRandomBasic",
+    "recentSize": 10000,
+    "reservoirSize": 40000,
+    "legacySize": 50000,
+    "totalCapacity": 100000,
+    "discardPolicy": "Descarta estados onde nenhum cano está visível (dx >= 1)",
+    "availableStrategies": [
+      "sampleRandomBasic",
+      "sampleLastPrioritizedAndRandom",
+      "sampleRewardPrioritized",
+      "sampleHybridWithRecentSeq",
+      "sampleHybridWithCrashFocus",
+      "sampleHybrid"
+    ]
+  },
+  "exploration": {
+    "strategy": "epsilon-greedy",
+    "actionBias": "95% idle, 5% flap durante exploração aleatória"
+  }
+}
