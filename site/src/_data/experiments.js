@@ -4,14 +4,14 @@
  * Reads experiment metadata directly from the repository:
  *
  *   experiments/
- *   └── 001/
- *       ├── README.md      → objective / hypothesis / conclusion
- *       ├── config.json    → machine-readable configuration
- *       ├── results.json   → machine-readable results
- *       └── training.json  → optional per-episode series
+ *   └── 001-base/
+ *       ├── README.md        → objective / hypothesis / conclusion
+ *       ├── experiment.json  → machine-readable configuration
+ *       └── runs/
+ *           └── 001.json     → run results, parameters, exploration
  *
- * Adding experiments/004/ is enough for a new experiment page
- * to be generated automatically on the next build.
+ * Adding a new NNN-slug/ directory is enough for a new experiment
+ * page to be generated automatically on the next build.
  *
  * While the repository contains no experiments, the site renders
  * clearly-marked PLACEHOLDER entries so the full interface can
@@ -146,44 +146,96 @@ const PLACEHOLDER_EXPERIMENTS = [
   },
 ];
 
+function loadRuns(expDir) {
+  const runsDir = path.join(expDir, "runs");
+  if (!fs.existsSync(runsDir)) return [];
+  return fs
+    .readdirSync(runsDir, { withFileTypes: true })
+    .filter((d) => d.isFile() && d.name.endsWith(".json"))
+    .map((d) => readJson(path.join(runsDir, d.name)))
+    .filter(Boolean)
+    .sort((a, b) => (a.run ?? 0) - (b.run ?? 0));
+}
+
+function normalizeResults(run) {
+  if (!run) return { score: {}, training: {}, learning: {} };
+  const best = run.results?.bestScore ?? null;
+  const episodes = run.parameters?.episodes ?? null;
+  const { epsilonStart, epsilonMin, epsilonDecay } = run.exploration ?? {};
+  let finalEpsilon = null;
+  if (epsilonStart != null && epsilonDecay != null && episodes != null) {
+    finalEpsilon = Math.max(epsilonStart * Math.pow(epsilonDecay, episodes), epsilonMin ?? 0);
+  }
+  return {
+    score: { best, average: null },
+    training: { episodes },
+    learning: { finalEpsilon, averageLoss: null },
+  };
+}
+
+function diffStateFeatures(prev, curr) {
+  if (!prev || !curr) return [];
+  const prevNames = new Set((prev.stateFeatures ?? []).map((f) => f.name));
+  const currNames = new Set((curr.stateFeatures ?? []).map((f) => f.name));
+  const changes = [];
+  for (const f of curr.stateFeatures ?? []) {
+    if (!prevNames.has(f.name)) changes.push(`Added state feature: ${f.name} — ${f.description}`);
+  }
+  for (const f of prev.stateFeatures ?? []) {
+    if (!currNames.has(f.name)) changes.push(`Removed state feature: ${f.name}`);
+  }
+  return changes;
+}
+
 function loadRealExperiments() {
   if (!fs.existsSync(EXPERIMENTS_DIR)) return [];
 
   const dirs = fs
     .readdirSync(EXPERIMENTS_DIR, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && /^\d+$/.test(d.name))
+    .filter((d) => d.isDirectory() && /^\d+-/.test(d.name))
     .map((d) => d.name)
     .sort();
 
   const experiments = [];
+  let prevExperimentJson = null;
 
   for (const dir of dirs) {
     const expDir = path.join(EXPERIMENTS_DIR, dir);
+    const id = dir.replace(/-.*/, "");
+
     const readmePath = path.join(expDir, "README.md");
     const readme = fs.existsSync(readmePath)
       ? fs.readFileSync(readmePath, "utf8")
       : null;
-
     const parsed = parseReadme(readme);
-    const config = readJson(path.join(expDir, "config.json"));
-    const results = readJson(path.join(expDir, "results.json"));
-    const training = readJson(path.join(expDir, "training.json"));
+
+    const experimentJson = readJson(path.join(expDir, "experiment.json"));
+    const runs = loadRuns(expDir);
+    const bestRun = runs[0] ?? null;
+
+    const description = experimentJson?.description ?? null;
+    const title = parsed.title || description || `Experiment ${id}`;
+
+    const results = normalizeResults(bestRun);
+    const changes = diffStateFeatures(prevExperimentJson, experimentJson);
 
     experiments.push({
-      id: dir,
+      id,
       slug: dir,
-      title: parsed.title || `Experiment ${dir}`,
+      title,
       placeholder: false,
       objective: parsed.objective,
       hypothesis: parsed.hypothesis,
       conclusion: parsed.conclusion,
-      changes: [],
-      config,
+      changes,
+      config: experimentJson,
       results,
-      series: Array.isArray(training?.episodes) ? training.episodes : null,
+      series: null,
       gitTag: `experiment-${dir}`,
       readmeAvailable: !!readme,
     });
+
+    prevExperimentJson = experimentJson;
   }
 
   return experiments;

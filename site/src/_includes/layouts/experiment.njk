@@ -4,7 +4,9 @@ layout: layouts/base.njk
 {% from "components/macros.njk" import metric, chip, placeholderNote %}
 {% set res = experiment.results %}
 {% set cfg = experiment.config %}
-{% set prevExp = pagination.previousItem %}
+{% set expIndex = experiments.list | findIndex("slug", experiment.slug) %}
+{% set prevExp = experiments.list[expIndex - 1] if expIndex > 0 else null %}
+{% set nextExp = experiments.list[expIndex + 1] if expIndex < experiments.list.length - 1 else null %}
 
 <article class="experiment container" data-reveal-root>
   <nav class="breadcrumbs" aria-label="Breadcrumb">
@@ -45,7 +47,7 @@ layout: layouts/base.njk
   </header>
 
   {% if experiment.placeholder %}
-  {{ placeholderNote("This experiment entry is generated from placeholder data so the interface can be previewed. Real experiments appear automatically once experiments/" ~ experiment.id ~ "/ exists with config.json and results.json.") }}
+  {{ placeholderNote("This experiment entry is generated from placeholder data so the interface can be previewed. Real experiments appear automatically once experiments/" ~ experiment.slug ~ "/ exists with experiment.json and runs/.") }}
   {% endif %}
 
   <section class="metric-row" aria-label="Headline metrics" data-reveal>
@@ -105,7 +107,7 @@ layout: layouts/base.njk
         <h2>Configuration</h2>
         {% if cfg %}
         {% for groupName, group in cfg %}
-          {% if groupName != "experiment" and group is iterable %}
+          {% if groupName != "experiment" and group is mapping %}
         <p class="config-group">{{ groupName }}</p>
         <dl class="spec-list">
           {% for key, value in group %}
@@ -118,7 +120,7 @@ layout: layouts/base.njk
           {% endif %}
         {% endfor %}
         {% else %}
-        <p class="todo-line">No <code>config.json</code> yet. The schema is defined in <code>experiments/README.md</code>.</p>
+        <p class="todo-line">No <code>experiment.json</code> yet. The schema is defined in <code>experiments/README.md</code>.</p>
         <dl class="spec-list">
           <div class="spec-row"><dt>algorithm</dt><dd>DQN (current implementation)</dd></div>
           <div class="spec-row"><dt>gamma</dt><dd>{{ impl.training.gamma }}</dd></div>
@@ -156,11 +158,11 @@ layout: layouts/base.njk
       </span>
     </a>
     {% else %}<span></span>{% endif %}
-    {% if pagination.nextItem %}
-    <a class="pager-link pager-next" href="{{ ('/experiments/' ~ pagination.nextItem.slug ~ '/') | url }}">
+    {% if nextExp %}
+    <a class="pager-link pager-next" href="{{ ('/experiments/' ~ nextExp.slug ~ '/') | url }}">
       <span>
         <span class="pager-label">Next experiment</span>
-        <span class="pager-title">#{{ pagination.nextItem.id }} — {{ pagination.nextItem.title }}</span>
+        <span class="pager-title">#{{ nextExp.id }} — {{ nextExp.title }}</span>
       </span>
       <span class="pager-dir" aria-hidden="true">→</span>
     </a>

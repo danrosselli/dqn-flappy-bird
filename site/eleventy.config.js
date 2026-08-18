@@ -36,6 +36,7 @@ export default function (eleventyConfig) {
    * Filters
    * ---------------------------------------------------------- */
   eleventyConfig.addFilter("num", (value) => {
+    if (value === null || value === undefined) return value;
     const n = Number(value);
     if (Number.isNaN(n)) return value;
     return n.toLocaleString("en-US");
@@ -57,6 +58,12 @@ export default function (eleventyConfig) {
   });
 
   eleventyConfig.addFilter("json", (value) => JSON.stringify(value));
+
+  /* Find the index of an object in an array by key. */
+  eleventyConfig.addFilter("findIndex", (arr, key, value) => {
+    if (!Array.isArray(arr)) return -1;
+    return arr.findIndex((item) => item[key] === value);
+  });
 
   /* Human-friendly rendering of a config value (objects → JSON). */
   eleventyConfig.addFilter("configVal", (value) => {
