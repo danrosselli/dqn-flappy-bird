@@ -17,8 +17,6 @@ There is no pre-trained model shipped with the project. Open the page and the ag
 starts naive — flapping at random, dying immediately — and improves as episodes
 accumulate. Close the tab, come back tomorrow, and it resumes where it left off.
 
-{% include "components/loop-diagram.njk" %}
-
 ## Why Flappy Bird?
 
 Flappy Bird is close to an ideal laboratory environment for reinforcement learning:

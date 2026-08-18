@@ -17,6 +17,10 @@ layout: layouts/base.njk
   </div>
   {% endif %}
 
+  {% if page.url and page.url.includes("/project/") %}
+  <div data-reveal>{% include "components/loop-diagram.njk" %}</div>
+  {% endif %}
+
   {% if collection and collections[collection] %}
   <ol class="index-list" data-reveal>
     {% for item in collections[collection] %}
