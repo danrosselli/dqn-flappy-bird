@@ -1,8 +1,16 @@
 /* ------------------------------------------------------------
  * REPLAY BUFFER (com todos os métodos antigos + híbrido novo)
  * ------------------------------------------------------------ */
+
+/* ------------------------------------------------------------
+ * ER DECAY (Forget-and-Grow) — Hiperparâmetros
+ * ------------------------------------------------------------ */
+export const ER_DECAY_FACTOR = 0.99992;   // valores típicos: 0.9999 ~ 0.99995
+export const ER_DECAY_MIN_WEIGHT = 0.05;  // peso mínimo para não zerar completamente
+export const ER_RECENT_RATIO = 0.35;      // proporção de amostras recentes no batch
+
 export class ReplayBuffer {
-	constructor(recentSize = 10000, reservoirSize = 40000) {
+	constructor(recentSize = 10000, reservoirSize = 40000, decayFactor = ER_DECAY_FACTOR, minWeight = ER_DECAY_MIN_WEIGHT) {
 
 		this.bufferSize = recentSize + reservoirSize; // Tamanho total do buffer (legado)
 		this.reservoirSize = reservoirSize;
@@ -12,13 +20,17 @@ export class ReplayBuffer {
 		this.recentBuffer = [];
 		this.buffer = []; // Buffer legado
 
+		// ER Decay (Forget-and-Grow) — decaimento temporal aplicado ao reservoir
+		this.decayFactor = decayFactor;
+		this.minWeight = minWeight;
+
 		this.totalSeen = 0;
 		this.bufferPtr = 0; // Ponteiro para circular buffer
 		this.recentPtr = 0; // Ponteiro para circular buffer
 	}
 
 	add(state, action, reward, nextState, done) {
-		const transition = { state, action, reward, nextState, done };
+		const transition = { state, action, reward, nextState, done, stepAdded: this.totalSeen, timesSampled: 0 };
 
 		// descarta estados iniciais onde ainda não há canos na tela (dx = 1.0)
 		if (state[0] >= 1) {
@@ -245,6 +257,66 @@ export class ReplayBuffer {
 		while (batch.length < batchSize && this.reservoirBuffer.length > 0) {
 			const idx = Math.floor(Math.random() * this.reservoirBuffer.length);
 			batch.push(this.reservoirBuffer[idx]);
+		}
+
+		return batch;
+	}
+
+	// Método FoG (ER Decay): amostragem híbrida com decaimento temporal no reservoir
+	weightedRandomIndex(weights) {
+		const total = weights.reduce((a, b) => a + b, 0);
+		if (total <= 0) {
+			return Math.floor(Math.random() * weights.length);
+		}
+		let r = Math.random() * total;
+		for (let i = 0; i < weights.length; i++) {
+			r -= weights[i];
+			if (r <= 0) return i;
+		}
+		return weights.length - 1;
+	}
+
+	sampleHybridWithDecay(batchSize, recentRatio = ER_RECENT_RATIO) {
+		const batch = [];
+
+		// Proporção fixa recent/reservoir (recent sem decay, reservoir com decay)
+		const numRecent = Math.floor(batchSize * recentRatio);
+		const numReservoir = batchSize - numRecent;
+
+		// 1. Amostras recentes (sem decay)
+		if (numRecent > 0 && this.recentBuffer.length > 0) {
+			for (let i = 0; i < numRecent; i++) {
+				const idx = Math.floor(Math.random() * this.recentBuffer.length);
+				batch.push(this.recentBuffer[idx]);
+			}
+		}
+
+		// 2. Amostras do reservoir COM decay temporal (Forget-and-Grow)
+		if (numReservoir > 0 && this.reservoirBuffer.length > 0) {
+			const weights = this.reservoirBuffer.map(t => {
+				const age = this.totalSeen - (t.stepAdded || 0);
+				const w = Math.pow(this.decayFactor, age);
+				return Math.max(w, this.minWeight);
+			});
+
+			for (let i = 0; i < numReservoir; i++) {
+				const idx = this.weightedRandomIndex(weights);
+				const transition = this.reservoirBuffer[idx];
+				transition.timesSampled = (transition.timesSampled || 0) + 1;
+				batch.push(transition);
+			}
+		}
+
+		// Fallback raro: preenche com reservoir caso o recentBuffer esteja curto
+		while (batch.length < batchSize && this.reservoirBuffer.length > 0) {
+			const idx = Math.floor(Math.random() * this.reservoirBuffer.length);
+			batch.push(this.reservoirBuffer[idx]);
+		}
+
+		// 3. Shuffle final do batch inteiro
+		for (let i = batch.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[batch[i], batch[j]] = [batch[j], batch[i]];
 		}
 
 		return batch;

@@ -98,8 +98,8 @@ export class DQNAgent {
 
     this.trainingInProgress = true;
 
-    // Usa o híbrido (reservoir + recent real)
-    const batch = this.replayBuffer.sampleRandomBasic(BATCH_SIZE);  // Ou passe %: sampleHybrid(BATCH_SIZE, 0.4)
+    // FoG (ER Decay): amostragem híbrida com decaimento temporal no reservoir
+    const batch = this.replayBuffer.sampleHybridWithDecay(BATCH_SIZE);
 
     const states = [];
     const actions = [];

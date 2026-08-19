@@ -1,7 +1,7 @@
 # Forget-and-Grow (FoG) — Implementação para DQN Flappy Bird
 
 **Objetivo deste documento:**  
-Fornecer uma especificação técnica completa e detalhada da técnica **Forget-and-Grow (FoG)** para que outra IA possa implementar as modificações de forma precisa e segura no código-fonte existente (`src/`).
+Documentar, de forma técnica e completa, a técnica **Forget-and-Grow (FoG)** aplicada ao experimento, servindo como referência de especificação e de implementação das modificações no código-fonte existente (`src/`).
 
 **Arquivos principais envolvidos:**
 - `replayBuffer.js` → principal ponto de alteração (ER Decay)
@@ -202,7 +202,7 @@ Muitos dos benefícios de plasticidade já aparecem só com o decay. Network Exp
 
 ---
 
-## 4. Plano de Implementação Passo a Passo (para a outra IA)
+## 4. Plano de Implementação Passo a Passo
 
 ### Fase 1 — ER Decay (prioritária)
 
@@ -269,7 +269,7 @@ Após implementar o ER Decay, espera-se observar:
 
 ---
 
-## 8. Observações Finais para a IA Implementadora
+## 8. Observações Finais de Implementação
 
 - **Não quebre a compatibilidade** com os métodos de amostragem antigos. Mantenha-os.
 - O `sampleHybridWithCrashFocus` e `sampleHybridWithRecentSeq` podem continuar sendo usados; o decay deve ser aplicado preferencialmente na parte do reservoir.

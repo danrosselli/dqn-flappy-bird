@@ -27,19 +27,25 @@
   },
   "buffer": {
     "type": "hybrid-reservoir",
-    "activeStrategy": "sampleRandomBasic",
+    "activeStrategy": "sampleHybridWithDecay",
     "recentSize": 10000,
     "reservoirSize": 40000,
     "legacySize": 50000,
     "totalCapacity": 100000,
     "discardPolicy": "Descarta estados onde nenhum cano está visível (dx >= 1)",
+    "erDecay": {
+      "decayFactor": 0.99992,
+      "minWeight": 0.05,
+      "recentRatio": 0.35
+    },
     "availableStrategies": [
       "sampleRandomBasic",
       "sampleLastPrioritizedAndRandom",
       "sampleRewardPrioritized",
       "sampleHybridWithRecentSeq",
       "sampleHybridWithCrashFocus",
-      "sampleHybrid"
+      "sampleHybrid",
+      "sampleHybridWithDecay"
     ]
   },
   "exploration": {
