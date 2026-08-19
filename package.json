@@ -15,9 +15,9 @@
     },
     "homepage": "https://github.com/phaserjs/template-vite#readme",
     "scripts": {
-        "dev": "echo -e \"Para rodar um experimento, entre no diretório do experimento:\\n  cd experiments/001-base && bun run dev\\n\\nPara rodar o site de documentação:\\n  cd site && bun run dev\"",
-        "build": "echo -e \"Para buildar um experimento, entre no diretório do experimento:\\n  cd experiments/001-base && bun run build\\n\\nPara buildar o site de documentação:\\n  cd site && bun run build\"",
-        "dev-nolog": "echo -e \"Para rodar um experimento (sem log), entre no diretório do experimento:\\n  cd experiments/001-base && bun run dev\"",
+        "dev": "echo -e \"Para rodar um experimento, entre no diretório do experimento:\\n  cd experiments/003-forget-and-grow && bun run dev\\n\\nPara rodar o site de documentação:\\n  cd site && bun run dev\"",
+        "build": "echo -e \"Para buildar um experimento, entre no diretório do experimento:\\n  cd experiments/003-forget-and-grow && bun run build\\n\\nPara buildar o site de documentação:\\n  cd site && bun run build\"",
+        "dev-nolog": "echo -e \"Para rodar um experimento (sem log), entre no diretório do experimento:\\n  cd experiments/003-forget-and-grow && bun run dev\"",
         "build-all": "for dir in experiments/*/; do if [ -f \"$dir/package.json\" ]; then echo \"Building $(basename $dir)...\" && (cd \"$dir\" && bun run build); fi; done",
         "build-nolog": "bun run build-all"
     },

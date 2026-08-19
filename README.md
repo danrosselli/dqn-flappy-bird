@@ -29,7 +29,8 @@ dqn-flappy-bird/
 │   │       ├── game/          # Phaser 3 game scenes
 │   │       ├── rl/            # DQN agent, replay buffer, persistence
 │   │       └── main.js        # Entry point
-│   └── 002-state9/            # 9-dim state (adds birdY)
+│   ├── 002-state9/            # 9-dim state (adds birdY)
+│   └── 003-forget-and-grow/  # Forget-and-grow hypothesis
 ├── data/                      # Training history datasets
 ├── site/                      # Documentation website (Eleventy)
 ├── vite/                      # Shared Vite configs (dev/prod)
@@ -45,6 +46,7 @@ dqn-flappy-bird/
 |---|------|-------|------------|-------------|
 | 001 | base | 8-dim | 485 | Baseline — pipe distances, gap, velocity, speed |
 | 002 | state9 | 9-dim | 456 | Adds absolute bird Y position |
+| 003 | forget-and-grow | 8-dim | — | Forget-and-grow hypothesis |
 
 Each experiment is a self-contained directory with its own `package.json`, source code, config, and results. The documentation site reads `experiment.json` and `runs/*.json` to auto-generate experiment pages.
 
@@ -69,7 +71,7 @@ bun install
 ### Run an experiment
 
 ```bash
-cd experiments/001-base
+cd experiments/003-forget-and-grow
 bun run dev
 ```
 
@@ -78,18 +80,18 @@ Opens on `localhost:8080`. The agent starts from scratch — flapping at random,
 Switch to any experiment directory to try a different configuration:
 
 ```bash
-cd experiments/002-state9
+cd experiments/001-base
 bun run dev
 ```
 
 ### Build an experiment
 
 ```bash
-cd experiments/001-base
+cd experiments/003-forget-and-grow
 bun run build
 ```
 
-Output goes to `experiments/001-base/dist/`.
+Output goes to `experiments/003-forget-and-grow/dist/`.
 
 ### Build all experiments
 
