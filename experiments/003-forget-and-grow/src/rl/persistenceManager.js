@@ -7,14 +7,16 @@
 // ------------------------------------------------------------
 
 import * as tf from '@tensorflow/tfjs';
+import experimentConfig from '../../experiment.json';
 
-const DB_NAME = 'FlappyDQNDB';
+const EXPERIMENT_NAME = (experimentConfig && experimentConfig.name) ? experimentConfig.name : 'experiment';
+const DB_NAME = `FlappyDQNDB_${EXPERIMENT_NAME}`;
 const DB_VERSION = 1;
 const GAME_DATA_STORE = 'gameData';
 
 export class PersistenceManager {
 	constructor() {
-		this.modelPath = 'indexeddb://flappy-dqn-model'; // Caminho nativo IndexedDB (mais eficiente que localstorage://)
+		this.modelPath = `indexeddb://flappy-dqn-model-${EXPERIMENT_NAME}`; // Caminho nativo IndexedDB (mais eficiente que localstorage://)
 	}
 
 	// ------------------------------------------------------------
