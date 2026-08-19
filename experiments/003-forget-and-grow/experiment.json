@@ -1,6 +1,6 @@
 {
   "name": "003-forget-and-grow",
-  "description": "DQN Flappy Bird com estado de 8 dimensões",
+  "description": "DQN Flappy Bird com Forget-and-Grow (FoG: ER Decay + Network Expansion)",
   "stateSize": 8,
   "stateFeatures": [
     {"name": "dx", "description": "Distância horizontal ao cano atual", "normalization": "(dx / 529) - 1, range [-1, +1]"},
