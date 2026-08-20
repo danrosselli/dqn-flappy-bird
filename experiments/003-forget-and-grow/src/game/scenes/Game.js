@@ -34,6 +34,7 @@ export class Game extends Phaser.Scene {
 			const loaded = await this.agent.loadBrain();
 			if (loaded.success) {
 				this.generation = loaded.generation;
+				this.highScore = loaded.highScore ?? 0;
 			}
 		}
 
@@ -429,7 +430,7 @@ export class Game extends Phaser.Scene {
 		this.highScore = Math.max(this.highScore, this.score);
 		this.generation++;
 		await this.agent.maybeExpandNetwork(this.generation);
-		await this.agent.saveBrain(this.generation);
+		await this.agent.saveBrain(this.generation, this.highScore);
 
 		this.endGame();
 	}

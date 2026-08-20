@@ -168,10 +168,10 @@ export class DQNAgent {
     }
   }
 
-  async saveBrain(generation) {
+  async saveBrain(generation, highScore = 0) {
     await this.persistence.saveModel(this.model);
     await this.persistence.saveReplayBuffers(this.replayBuffer);
-    await this.persistence.saveMetadata({ epsilon, generation });
+    await this.persistence.saveMetadata({ epsilon, generation, highScore });
     console.log('Estado completo salvo! Gen:', generation);
   }
 
@@ -196,8 +196,9 @@ export class DQNAgent {
         if (metadata) {
           epsilon = metadata.epsilon ?? 0.9;
           const gen = metadata.generation ?? 1;
-          console.log('Estado completo carregado! Epsilon:', epsilon, 'Gen:', gen);
-          return { success: true, generation: gen };
+          const highScore = metadata.highScore ?? 0;
+          console.log('Estado completo carregado! Epsilon:', epsilon, 'Gen:', gen, 'HighScore:', highScore);
+          return { success: true, generation: gen, highScore };
         }
       }
     } catch (e) {

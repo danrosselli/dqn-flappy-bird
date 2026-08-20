@@ -244,10 +244,10 @@ export class DQNAgent {
     }
   }
 
-  async saveBrain(generation) {
+  async saveBrain(generation, highScore = 0) {
     await this.persistence.saveModel(this.model);
     await this.persistence.saveReplayBuffers(this.replayBuffer);
-    await this.persistence.saveMetadata({ epsilon, generation, hiddenUnits: this.hiddenUnits, expansionCount: this.expansionCount });
+    await this.persistence.saveMetadata({ epsilon, generation, highScore, hiddenUnits: this.hiddenUnits, expansionCount: this.expansionCount });
     console.log('Estado completo salvo! Gen:', generation);
   }
 
@@ -276,8 +276,9 @@ export class DQNAgent {
           this.hiddenUnits = metadata.hiddenUnits ?? this.hiddenUnits;
           this.expansionCount = metadata.expansionCount ?? 0;
           const gen = metadata.generation ?? 1;
-          console.log('Estado completo carregado! Epsilon:', epsilon, 'Gen:', gen, 'HiddenUnits:', this.hiddenUnits);
-          return { success: true, generation: gen };
+          const highScore = metadata.highScore ?? 0;
+          console.log('Estado completo carregado! Epsilon:', epsilon, 'Gen:', gen, 'HiddenUnits:', this.hiddenUnits, 'HighScore:', highScore);
+          return { success: true, generation: gen, highScore };
         }
       }
     } catch (e) {
