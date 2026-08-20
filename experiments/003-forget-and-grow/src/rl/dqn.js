@@ -174,8 +174,8 @@ export class DQNAgent {
 
     this.trainingInProgress = true;
 
-    // FoG (ER Decay): amostragem híbrida com decaimento temporal no reservoir
-    const batch = this.replayBuffer.sampleHybridWithDecay(BATCH_SIZE);
+    // Teste: buffer clássico (sampleRandomBasic) para isolar o efeito da Network Expansion
+    const batch = this.replayBuffer.sampleRandomBasic(BATCH_SIZE);
 
     const states = [];
     const actions = [];
