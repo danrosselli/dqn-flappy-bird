@@ -30,6 +30,14 @@ export const LEARNING_RATE = 0.001; // Learning rate menor para convergência su
 export const TRAIN_THROTTLE = 2; // Treina a cada N passos para evitar sobrecarga
 
 /* ------------------------------------------------------------
+ * NETWORK EXPANSION (Forget-and-Grow) — Hiperparámetros
+ * ------------------------------------------------------------ */
+export const INITIAL_HIDDEN_UNITS = 64;      // unidades ocultas iniciais
+export const EXPAND_EVERY_GENERATIONS = 80;  // expandir cada N gerações
+export const EXPAND_UNITS = 16;              // unidades adicionadas por expansão
+export const MAX_HIDDEN_UNITS = 192;         // limite superior
+
+/* ------------------------------------------------------------
  * DQN AGENT
  * ------------------------------------------------------------ */
 export class DQNAgent {
@@ -37,6 +45,8 @@ export class DQNAgent {
 
     // Force WebGL backend for better performance and stability
     tf.setBackend('webgl').then(() => console.log('TensorFlow.js backend: WebGL')).catch(err => console.warn('Failed to set WebGL:', err));
+    this.hiddenUnits = INITIAL_HIDDEN_UNITS;
+    this.expansionCount = 0;
     this.model = this.createModel();
     this.targetModel = this.createModel();
     this.targetModel.setWeights(this.model.getWeights());
@@ -48,14 +58,14 @@ export class DQNAgent {
     this.persistence = new PersistenceManager();
   }
 
-  createModel() {
+  createModel(hiddenUnits = this.hiddenUnits) {
     const model = tf.sequential();
 
-    // Input de STATE_SIZE para 64 neurônios
-    model.add(tf.layers.dense({ units: 64, activation: 'relu', inputShape: [STATE_SIZE] }));
+    // Input de STATE_SIZE para hiddenUnits neurônios
+    model.add(tf.layers.dense({ units: hiddenUnits, activation: 'relu', inputShape: [STATE_SIZE] }));
     
-    // 64 neurônios
-    model.add(tf.layers.dense({ units: 64, activation: 'relu' }));
+    // hiddenUnits neurônios
+    model.add(tf.layers.dense({ units: hiddenUnits, activation: 'relu' }));
     
     // Camada de saída (2 ações)
     model.add(tf.layers.dense({ units: 2, activation: 'linear' }));
@@ -66,6 +76,72 @@ export class DQNAgent {
     });
 
     return model;
+  }
+
+  // ------------------------------------------------------------
+  // NETWORK EXPANSION (Forget-and-Grow) — Neurogênese
+  // ------------------------------------------------------------
+  expandNetwork(extraUnits = EXPAND_UNITS) {
+    const newUnits = this.hiddenUnits + extraUnits;
+    if (newUnits > MAX_HIDDEN_UNITS) {
+      console.log(`[FoG] Red no máximo ${MAX_HIDDEN_UNITS} unidades ocultas. Expansão omitida.`);
+      return false;
+    }
+
+    const oldUnits = this.hiddenUnits;
+    const oldWeights = this.model.getWeights();
+    const newModel = this.createModel(newUnits);
+
+    // Copia os pesos antigos e adiciona unidades novas com inicialização aleatoria (Xavier)
+    tf.tidy(() => {
+      const w1 = oldWeights[0]; // [STATE_SIZE, oldUnits]
+      const b1 = oldWeights[1]; // [oldUnits]
+      const w2 = oldWeights[2]; // [oldUnits, oldUnits]
+      const b2 = oldWeights[3]; // [oldUnits]
+      const w3 = oldWeights[4]; // [oldUnits, 2]
+      const b3 = oldWeights[5]; // [2]
+
+      // Capa 1: input → hidden (só cresce em colunas)
+      const newW1 = tf.concat([w1, tf.randomNormal([STATE_SIZE, extraUnits])], 1);
+      const newB1 = tf.concat([b1, tf.randomNormal([extraUnits])], 0);
+
+      // Capa 2: hidden → hidden (cresce em filas e colunas)
+      const topLeft = w2;
+      const topRight = tf.randomNormal([oldUnits, extraUnits]);
+      const bottomLeft = tf.randomNormal([extraUnits, oldUnits]);
+      const bottomRight = tf.randomNormal([extraUnits, extraUnits]);
+      const newW2 = tf.concat(
+        [tf.concat([topLeft, topRight], 1), tf.concat([bottomLeft, bottomRight], 1)],
+        0
+      );
+      const newB2 = tf.concat([b2, tf.randomNormal([extraUnits])], 0);
+
+      // Capa 3: hidden → output (só cresce em filas)
+      const newW3 = tf.concat([w3, tf.randomNormal([extraUnits, 2])], 0);
+      const newB3 = b3;
+
+      newModel.setWeights([newW1, newB1, newW2, newB2, newW3, newB3]);
+    });
+
+    this.model = newModel;
+    this.model.compile({ optimizer: tf.train.adam(LEARNING_RATE), loss: 'meanSquaredError' });
+    this.targetModel = this.createModel(newUnits);
+    this.targetModel.setWeights(this.model.getWeights());
+    this.hiddenUnits = newUnits;
+    this.expansionCount++;
+
+    // Tras a expansão, aumenta ligeramente a exploração para testar as novas unidades
+    epsilon = Math.min(epsilon + 0.05, 0.9);
+
+    console.log(`[FoG] Red expandida: ${oldUnits} → ${newUnits} unidades ocultas (expansão #${this.expansionCount})`);
+    return true;
+  }
+
+  maybeExpandNetwork(generation) {
+    if (generation > 0 && generation % EXPAND_EVERY_GENERATIONS === 0) {
+      return this.expandNetwork();
+    }
+    return false;
   }
 
   async chooseAction(state) {
@@ -171,7 +247,7 @@ export class DQNAgent {
   async saveBrain(generation) {
     await this.persistence.saveModel(this.model);
     await this.persistence.saveReplayBuffers(this.replayBuffer);
-    await this.persistence.saveMetadata({ epsilon, generation });
+    await this.persistence.saveMetadata({ epsilon, generation, hiddenUnits: this.hiddenUnits, expansionCount: this.expansionCount });
     console.log('Estado completo salvo! Gen:', generation);
   }
 
@@ -187,7 +263,9 @@ export class DQNAgent {
         }
         this.model = model;
         this.model.compile({ optimizer: tf.train.adam(LEARNING_RATE), loss: 'meanSquaredError' });
-        this.targetModel = this.createModel();
+        // Detecta as unidades ocultas a partir do modelo cargado (arquitetura variável)
+        this.hiddenUnits = (model.layers[0] && model.layers[0].units) ? model.layers[0].units : INITIAL_HIDDEN_UNITS;
+        this.targetModel = this.createModel(this.hiddenUnits);
         this.targetModel.setWeights(model.getWeights());
 
         await this.persistence.loadReplayBuffers(this.replayBuffer);
@@ -195,8 +273,10 @@ export class DQNAgent {
         const metadata = await this.persistence.loadMetadata();
         if (metadata) {
           epsilon = metadata.epsilon ?? 0.9;
+          this.hiddenUnits = metadata.hiddenUnits ?? this.hiddenUnits;
+          this.expansionCount = metadata.expansionCount ?? 0;
           const gen = metadata.generation ?? 1;
-          console.log('Estado completo carregado! Epsilon:', epsilon, 'Gen:', gen);
+          console.log('Estado completo carregado! Epsilon:', epsilon, 'Gen:', gen, 'HiddenUnits:', this.hiddenUnits);
           return { success: true, generation: gen };
         }
       }

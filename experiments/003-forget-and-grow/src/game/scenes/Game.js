@@ -272,6 +272,7 @@ export class Game extends Phaser.Scene {
 			`Gen: ${this.generation}\n` +
 			`High: ${this.highScore}\n` +
 			`Epsilon: ${epsilon.toFixed(4)}\n` +
+			`Net: ${this.agent.hiddenUnits}\n` +
 			`Speed: ${Math.floor(pipeSpeed)}\n` +  // Usa o mesmo valor, só arredonda pro display
 			`DX: ${Math.floor(dx)}\n` +
 			`DY: ${Math.floor(dy)}\n` +
@@ -405,6 +406,7 @@ export class Game extends Phaser.Scene {
 
 		this.highScore = Math.max(this.highScore, this.score);
 		this.generation++;
+		await this.agent.maybeExpandNetwork(this.generation);
 		await this.agent.saveBrain(this.generation);
 
 		this.endGame();
