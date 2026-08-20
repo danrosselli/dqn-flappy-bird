@@ -77,8 +77,8 @@ export class Game extends Phaser.Scene {
 			strokeThickness: 4,
 		});
 
-		// HUD Text (agora no lado direito, um pouco mais abaixo para não cobrir o botão de reset)
-		this.hudText = this.add.text(this.scale.width - 40, 60, '', {
+		// HUD Text (agora no lado direito)
+		this.hudText = this.add.text(this.scale.width - 40, 30, '', {
 			fontSize: '18px',
 			fill: '#ff0',
 			stroke: '#000',
@@ -90,9 +90,9 @@ export class Game extends Phaser.Scene {
 		// Moldura (fundo semi-transparente preto com borda)
 		this.hudBackground = this.add.rectangle(
 			this.scale.width - 20,  // Mesmo X do texto (alinhado à direita)
-			60,                     // Mesmo Y do topo do texto
+			20,                     // Mesmo Y do topo do texto
 			200,                    // Largura fixa (ajuste se precisar mais/menos)
-			360,                    // Altura aproximada (cobre todo o texto)
+			380,                    // Altura aproximada (cobre todo o texto)
 			0x000000,               // Cor preta
 			0.2                     // Alpha 0.6 = semi-transparente
 		).setOrigin(1, 0);          // Origem no canto superior direito
@@ -104,8 +104,8 @@ export class Game extends Phaser.Scene {
 
 		// Botão de reset nativo (DOMElement = botão HTML real que escala com o canvas)
 		this.resetBtn = this.add.dom(
-			this.scale.width - 55,  // X (centro do botão, canto superior direito)
-			28,                     // Y (centro do botão)
+			this.scale.width - 43,  // X (centro do botão, canto superior direito)
+			20,                     // Y (centro do botão)
 			'button',
 			'width: 70px; height: 26px; background-color: #c0392b; color: #fff; ' +
 			'border: none; border-radius: 8px; font-size: 12px; font-weight: normal; ' +

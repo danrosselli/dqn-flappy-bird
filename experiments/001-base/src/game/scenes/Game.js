@@ -102,6 +102,20 @@ export class Game extends Phaser.Scene {
 
 		this.scoreText.setDepth(1000);
 
+		// Botão de reset nativo (DOMElement = botão HTML real que escala com o canvas)
+		this.resetBtn = this.add.dom(
+			this.scale.width - 43,  // X (centro do botão, canto superior direito)
+			20,                     // Y (centro do botão)
+			'button',
+			'width: 70px; height: 26px; background-color: #c0392b; color: #fff; ' +
+			'border: none; border-radius: 8px; font-size: 12px; font-weight: normal; ' +
+			'cursor: pointer; display: flex; align-items: center; justify-content: center;',
+			'RESET'
+		).setOrigin(0.5, 0.5);
+		this.resetBtn.setDepth(1001);
+		this.resetBtn.addListener('click');
+		this.resetBtn.on('click', () => this.handleReset());
+
 		this.pipeTimer = this.time.addEvent({
 			delay: 1900,
 			callback: this.addPipeRow,
@@ -292,6 +306,14 @@ export class Game extends Phaser.Scene {
 		if (this.gameOver) return;
 		this.bird.setVelocityY(-350);
 		this.bird.angle = -20;
+	}
+
+	// Reset completo: apaga toda a memória (modelo + buffers + metadata) e recarga a página
+	async handleReset() {
+		const confirmed = confirm('Apagar toda a memória e os dados gravados no navegador? Esta ação não pode ser desfeita.');
+		if (!confirmed) return;
+		await resetBrain();
+		window.location.reload();
 	}
 
 	getClosestPipe() {
