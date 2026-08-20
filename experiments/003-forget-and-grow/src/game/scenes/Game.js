@@ -77,8 +77,8 @@ export class Game extends Phaser.Scene {
 			strokeThickness: 4,
 		});
 
-		// HUD Text (agora no lado direito)
-		this.hudText = this.add.text(this.scale.width - 40, 30, '', {
+		// HUD Text (agora no lado direito, um pouco mais abaixo para não cobrir o botão de reset)
+		this.hudText = this.add.text(this.scale.width - 40, 60, '', {
 			fontSize: '18px',
 			fill: '#ff0',
 			stroke: '#000',
@@ -90,7 +90,7 @@ export class Game extends Phaser.Scene {
 		// Moldura (fundo semi-transparente preto com borda)
 		this.hudBackground = this.add.rectangle(
 			this.scale.width - 20,  // Mesmo X do texto (alinhado à direita)
-			20,                     // Mesmo Y do topo do texto
+			60,                     // Mesmo Y do topo do texto
 			200,                    // Largura fixa (ajuste se precisar mais/menos)
 			360,                    // Altura aproximada (cobre todo o texto)
 			0x000000,               // Cor preta
@@ -101,6 +101,20 @@ export class Game extends Phaser.Scene {
 		this.hudBackground.setDepth(999);  // Logo atrás do texto
 
 		this.scoreText.setDepth(1000);
+
+		// Botão de reset nativo (DOMElement = botão HTML real que escala com o canvas)
+		this.resetBtn = this.add.dom(
+			this.scale.width - 55,  // X (centro do botão, canto superior direito)
+			28,                     // Y (centro do botão)
+			'button',
+			'width: 70px; height: 26px; background-color: #c0392b; color: #fff; ' +
+			'border: none; border-radius: 8px; font-size: 12px; font-weight: normal; ' +
+			'cursor: pointer; display: flex; align-items: center; justify-content: center;',
+			'RESET'
+		).setOrigin(0.5, 0.5);
+		this.resetBtn.setDepth(1001);
+		this.resetBtn.addListener('click');
+		this.resetBtn.on('click', () => this.handleReset());
 
 		this.pipeTimer = this.time.addEvent({
 			delay: 1900,
@@ -293,6 +307,14 @@ export class Game extends Phaser.Scene {
 		if (this.gameOver) return;
 		this.bird.setVelocityY(-350);
 		this.bird.angle = -20;
+	}
+
+	// Reset completo: apaga toda a memória (modelo + buffers + metadata) e recarrega a página
+	async handleReset() {
+		const confirmed = confirm('Apagar toda a memória e os dados gravados no navegador? Esta ação não pode ser desfeita.');
+		if (!confirmed) return;
+		await resetBrain();
+		window.location.reload();
 	}
 
 	getClosestPipe() {
