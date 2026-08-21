@@ -8,7 +8,8 @@
     "batchSize": 64,
     "episodes": 100000,
     "targetUpdateFreq": 1000,
-    "trainThrottle": 2
+    "trainThrottle": 2,
+    "activeStrategy": "sampleRandomBasic"
   },
 
   "rewards": {

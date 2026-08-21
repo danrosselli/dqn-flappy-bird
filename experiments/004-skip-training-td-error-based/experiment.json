@@ -1,6 +1,6 @@
 {
-  "name": "001-base",
-  "description": "DQN Flappy Bird com estado de 8 dimensões",
+  "name": "004-skip-training-td-error-based",
+  "description": "Treino seletivo baseado no td-error",
   "stateSize": 8,
   "stateFeatures": [
     {"name": "dx", "description": "Distância horizontal ao cano atual", "normalization": "(dx / 529) - 1, range [-1, +1]"},
@@ -40,6 +40,16 @@
       "sampleHybridWithCrashFocus",
       "sampleHybrid"
     ]
+  },
+  "training": {
+    "tdErrorSkip": {
+      "description": "Treino seletivo: só atualiza a rede quando o TD-error médio do batch fica acima de um threshold adaptativo (percentil do histórico)",
+      "tdHistorySize": 1000,
+      "tdPercentile": 0.60,
+      "minTdThreshold": 0.15,
+      "tdWarmupThreshold": 0.40,
+      "warmupSamples": 50
+    }
   },
   "exploration": {
     "strategy": "epsilon-greedy",

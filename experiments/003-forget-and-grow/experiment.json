@@ -27,7 +27,6 @@
   },
   "buffer": {
     "type": "hybrid-reservoir",
-    "activeStrategy": "sampleHybridWithDecay",
     "recentSize": 10000,
     "reservoirSize": 40000,
     "legacySize": 50000,

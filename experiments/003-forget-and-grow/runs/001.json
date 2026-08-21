@@ -8,7 +8,13 @@
     "batchSize": 64,
     "episodes": 100000,
     "targetUpdateFreq": 1000,
-    "trainThrottle": 2
+    "trainThrottle": 2,
+    "activeStrategy": "sampleRandomBasic",
+    "initialHiddenUnits": 64,
+    "expandEveryGenerations": 80,
+    "expandUnits": 16,
+    "maxHiddenUnits": 192,
+    "epsilonBoostOnExpand": 0.05
   },
 
   "rewards": {
@@ -26,6 +32,7 @@
   },
 
   "results": {
-    "bestScore": 485
+    "generations": 2265,
+    "bestScore": 202
   }
 }

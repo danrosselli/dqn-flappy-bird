@@ -9,7 +9,11 @@
     "episodes": 100000,
     "targetUpdateFreq": 1000,
     "trainThrottle": 2,
-    "activeStrategy": "sampleRandomBasic"
+    "activeStrategy": "sampleRandomBasic",
+    "tdHistorySize": 1000,
+    "tdPercentile": 0.60,
+    "minTdThreshold": 0.15,
+    "tdWarmupThreshold": 0.40
   },
 
   "rewards": {
@@ -27,6 +31,6 @@
   },
 
   "results": {
-    "bestScore": 456
+    "bestScore": 0
   }
 }
