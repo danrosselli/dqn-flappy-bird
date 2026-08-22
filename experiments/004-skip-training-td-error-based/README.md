@@ -1,5 +1,3 @@
-# Experiment 004 — TD-error-gated training
-
 ## Objective
 
 Evaluate whether gating gradient updates on the batch TD-error improves training efficiency, by skipping updates that carry little learning signal instead of running them unconditionally on every sampled batch.
@@ -48,4 +46,4 @@ For reference, the baseline (Experiment 001) reached best score 485 in 2160 epis
 
 ## Conclusion
 
-TODO — the single-run comparison above (11× the baseline best score with ~7× fewer episodes) is consistent with the hypothesis, but more runs are needed before drawing a firm conclusion.
+The single-run comparison above (11× the baseline best score with ~7× fewer episodes) is consistent with the hypothesis, but more runs are needed before drawing a firm conclusion.

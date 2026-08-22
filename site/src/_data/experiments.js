@@ -31,7 +31,7 @@ const EXPERIMENTS_DIR = path.join(REPO_ROOT, "experiments");
  * paragraph of known sections (Objective, Hypothesis, Conclusion).
  * ---------------------------------------------------------- */
 function parseReadme(markdown) {
-  const out = { title: null, objective: null, hypothesis: null, conclusion: null };
+  const out = { title: null, objective: null, hypothesis: null, conclusion: null, changes: [] };
   if (!markdown) return out;
 
   const titleMatch = markdown.match(/^#\s+(.+)$/m);
@@ -45,6 +45,12 @@ function parseReadme(markdown) {
       .find((s) => s && !s.startsWith("#") && !s.startsWith("-") && !s.startsWith("```"));
     return block ? block.replace(/\n/g, " ") : null;
   };
+  const listItems = (body) =>
+    body
+      .split("\n")
+      .map((s) => s.trim())
+      .filter((s) => s.startsWith("- ") || s.startsWith("* "))
+      .map((s) => s.replace(/^[-*]\s+/, "").trim());
 
   for (const section of sections) {
     const nl = section.indexOf("\n");
@@ -53,6 +59,7 @@ function parseReadme(markdown) {
     if (name.startsWith("objective")) out.objective = firstParagraph(body);
     if (name.startsWith("hypothesis")) out.hypothesis = firstParagraph(body);
     if (name.startsWith("conclusion")) out.conclusion = firstParagraph(body);
+    if (name.startsWith("changes")) out.changes = listItems(body);
   }
   return out;
 }
@@ -217,7 +224,10 @@ function loadRealExperiments() {
     const title = parsed.title || description || `Experiment ${id}`;
 
     const results = normalizeResults(bestRun);
-    const changes = diffStateFeatures(prevExperimentJson, experimentJson);
+    const readmeChanges = parsed.changes ?? [];
+    const changes = readmeChanges.length
+      ? readmeChanges
+      : diffStateFeatures(prevExperimentJson, experimentJson);
 
     experiments.push({
       id,
