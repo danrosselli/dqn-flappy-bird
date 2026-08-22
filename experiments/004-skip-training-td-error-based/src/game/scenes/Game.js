@@ -93,7 +93,7 @@ export class Game extends Phaser.Scene {
 			this.scale.width - 20,  // Mesmo X do texto (alinhado à direita)
 			20,                     // Mesmo Y do topo do texto
 			200,                    // Largura fixa (ajuste se precisar mais/menos)
-			360,                    // Altura aproximada (cobre todo o texto)
+			420,                    // Altura aproximada (cobre todo o texto)
 			0x000000,               // Cor preta
 			0.2                     // Alpha 0.6 = semi-transparente
 		).setOrigin(1, 0);          // Origem no canto superior direito
@@ -283,11 +283,13 @@ export class Game extends Phaser.Scene {
 
 		// 8. Atualizar HUD (usa o pipeSpeed já calculado)
 		const qValues = this.agent.getQValues(currentState);
+		const trainStats = this.agent.getTrainStats();
+
 		this.hudText.setText(
 			`Gen: ${this.generation}\n` +
 			`High: ${this.highScore}\n` +
 			`Epsilon: ${epsilon.toFixed(4)}\n` +
-			`Speed: ${Math.floor(pipeSpeed)}\n` +  // Usa o mesmo valor, só arredonda pro display
+			`Speed: ${Math.floor(pipeSpeed)}\n` +
 			`DX: ${Math.floor(dx)}\n` +
 			`DY: ${Math.floor(dy)}\n` +
 			`VelY: ${Math.floor(velY)}\n` +
@@ -298,7 +300,10 @@ export class Game extends Phaser.Scene {
 			`Prox: ${this.proximityReward.toFixed(2)}\n` +
 			`Q-Idle: ${qValues[ACTION_IDLE].toFixed(2)}\n` +
 			`Q-Flap: ${qValues[ACTION_FLAP].toFixed(2)}\n` +
-			`Action: ${actionStr}`
+			`Action: ${actionStr}\n` +
+			`Train: ${trainStats.pct}%\n` +
+			`TD: ${trainStats.lastTDError}\n` +
+			`Thr: ${trainStats.threshold}`
 		);
 
 	}

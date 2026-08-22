@@ -29,11 +29,8 @@ export const TARGET_UPDATE_FREQ = 1000;
 export const LEARNING_RATE = 0.001;
 export const TRAIN_THROTTLE = 2;
 
-// --- Prioritized Training / TD-Error Skip ---
-export const TD_HISTORY_SIZE = 1000;      // quantos TD-errors guardar
-export const TD_PERCENTILE = 0.60;        // só treina acima deste percentil
-export const MIN_TD_THRESHOLD = 0.15;     // threshold mínimo de segurança
-export const TD_WARMUP_THRESHOLD = 0.40;  // valor usado enquanto o histórico é pequeno
+// --- Prioritized Training / TD-Error Skip (versão simples) ---
+export const TD_ERROR_THRESHOLD = 0.20;   // ajuste este valor
 
 /* ------------------------------------------------------------
  * DQN AGENT
@@ -54,8 +51,12 @@ export class DQNAgent {
     this.trainingInProgress = false;
 
     // Estado do Prioritized Training
-    this.tdErrorHistory = [];
     this.batchesSinceLastTrain = 0;
+    this.lastTDError = 0;
+
+    // Contadores para o HUD
+    this.totalTrainAttempts = 0;
+    this.totalTrained = 0;
 
     this.persistence = new PersistenceManager();
   }
@@ -98,18 +99,6 @@ export class DQNAgent {
       const action = qValues.argMax(1).dataSync()[0];
       return action;
     });
-  }
-
-  getAdaptiveThreshold() {
-    if (this.tdErrorHistory.length < 50) {
-      return TD_WARMUP_THRESHOLD;
-    }
-
-    const sorted = [...this.tdErrorHistory].sort((a, b) => a - b);
-    const index = Math.floor(sorted.length * TD_PERCENTILE);
-    const threshold = sorted[index];
-
-    return Math.max(threshold, MIN_TD_THRESHOLD);
   }
 
   async train() {
@@ -182,17 +171,12 @@ export class DQNAgent {
         return { targets: targetsTensor, meanTDError };
       });
 
-      // 2. Atualiza histórico
-      this.tdErrorHistory.push(meanTDError);
-      if (this.tdErrorHistory.length > TD_HISTORY_SIZE) {
-        this.tdErrorHistory.shift();
-      }
+      // 2. Decide só com base no TD-error
+      this.totalTrainAttempts++;
+      this.lastTDError = meanTDError;
 
-      // 3. Decide se treina ou pula
-      const threshold = this.getAdaptiveThreshold();
-      const shouldTrain = meanTDError >= threshold;
-
-      if (shouldTrain) {
+      if (meanTDError >= TD_ERROR_THRESHOLD) {
+        // Treina
         await this.model.fit(stateTensor, targets, {
           epochs: 1,
           batchSize: BATCH_SIZE,
@@ -200,8 +184,10 @@ export class DQNAgent {
         });
 
         this.decayEpsilon();
+        this.totalTrained++;
         this.batchesSinceLastTrain = 0;
       } else {
+        // Pula
         this.batchesSinceLastTrain++;
       }
 
@@ -221,6 +207,20 @@ export class DQNAgent {
     if (this.stepCount % TARGET_UPDATE_FREQ === 0) {
       this.targetModel.setWeights(this.model.getWeights());
     }
+  }
+
+  getTrainStats() {
+    const attempts = this.totalTrainAttempts || 0;
+    const trained = this.totalTrained || 0;
+    const pct = attempts > 0 ? (trained / attempts) * 100 : 0;
+
+    return {
+      trained,
+      attempts,
+      pct: pct.toFixed(1),
+      lastTDError: this.lastTDError ? this.lastTDError.toFixed(3) : '—',
+      threshold: TD_ERROR_THRESHOLD.toFixed(3)
+    };
   }
 
   async saveBrain(generation, highScore = 0) {
