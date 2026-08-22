@@ -42,11 +42,9 @@
     ]
   },
   "training": {
-    "tdErrorSkip": {
-      "description": "Selective training: skips gradient updates when the mean normalized TD-error of the sampled batch falls below a fixed threshold",
-      "tdNormThreshold": 0.04,
-      "normalization": "mean(|target - Q(s,a)| / (|target| + 1e-6))"
-    }
+    "description": "Selective training: skips gradient updates when the mean normalized batch TD-error falls below tdNormThreshold",
+    "tdNormThreshold": 0.04,
+    "normalization": "mean(|target - Q(s,a)| / (|target| + 1e-6))"
   },
   "exploration": {
     "strategy": "epsilon-greedy",
