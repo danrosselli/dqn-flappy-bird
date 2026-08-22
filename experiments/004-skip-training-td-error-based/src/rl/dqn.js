@@ -30,7 +30,7 @@ export const LEARNING_RATE = 0.001;
 export const TRAIN_THROTTLE = 2;
 
 // --- Prioritized Training / TD-Error Skip (normalizado) ---
-export const TD_NORM_THRESHOLD = 0.30;   // ponto de partida (0.25 ~ 0.35)
+export const TD_NORM_THRESHOLD = 0.04;   // ponto de partida (0.25 ~ 0.35)
 
 /* ------------------------------------------------------------
  * DQN AGENT

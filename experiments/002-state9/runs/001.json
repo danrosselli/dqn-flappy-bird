@@ -6,7 +6,7 @@
     "learningRate": 0.001,
     "gamma": 0.99,
     "batchSize": 64,
-    "episodes": 100000,
+    "episodes": 2560,
     "targetUpdateFreq": 1000,
     "trainThrottle": 2,
     "activeStrategy": "sampleRandomBasic"
