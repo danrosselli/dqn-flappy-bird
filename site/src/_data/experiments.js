@@ -98,7 +98,7 @@ const PLACEHOLDER_EXPERIMENTS = [
     conclusion: null,
     changes: [],
     config: null,
-    results: { score: { best: 87, average: 42 }, training: { episodes: 10000 }, learning: { finalEpsilon: 0.31 } },
+    results: { score: { best: 87 }, training: { episodes: 10000 }, learning: { finalEpsilon: 0.31 } },
     series: demoSeries(11, 10000, 0, 87),
     gitTag: null,
   },
@@ -112,7 +112,7 @@ const PLACEHOLDER_EXPERIMENTS = [
     conclusion: null,
     changes: [],
     config: null,
-    results: { score: { best: 143, average: 71 }, training: { episodes: 20000 }, learning: { finalEpsilon: 0.18 } },
+    results: { score: { best: 143 }, training: { episodes: 20000 }, learning: { finalEpsilon: 0.18 } },
     series: demoSeries(23, 20000, 2, 143),
     gitTag: null,
   },
@@ -126,7 +126,7 @@ const PLACEHOLDER_EXPERIMENTS = [
     conclusion: null,
     changes: [],
     config: null,
-    results: { score: { best: 217, average: 143 }, training: { episodes: 50000 }, learning: { finalEpsilon: 0.06 } },
+    results: { score: { best: 217 }, training: { episodes: 50000 }, learning: { finalEpsilon: 0.06 } },
     series: demoSeries(37, 50000, 5, 217),
     gitTag: null,
   },
@@ -140,7 +140,7 @@ const PLACEHOLDER_EXPERIMENTS = [
     conclusion: null,
     changes: [],
     config: null,
-    results: { score: { best: 327, average: 184 }, training: { episodes: 50000 }, learning: { finalEpsilon: 0.05 } },
+    results: { score: { best: 327 }, training: { episodes: 50000 }, learning: { finalEpsilon: 0.05 } },
     series: demoSeries(53, 50000, 8, 327),
     gitTag: null,
   },
@@ -167,7 +167,7 @@ function normalizeResults(run) {
     finalEpsilon = Math.max(epsilonStart * Math.pow(epsilonDecay, episodes), epsilonMin ?? 0);
   }
   return {
-    score: { best, average: null },
+    score: { best },
     training: { episodes },
     learning: { finalEpsilon, averageLoss: null },
   };

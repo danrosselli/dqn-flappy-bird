@@ -52,7 +52,6 @@ layout: layouts/base.njk
 
   <section class="metric-row" aria-label="Headline metrics" data-reveal>
     {{ metric("Best score", res.score.best | num if res and res.score and res.score.best is defined else "—", "", "best") }}
-    {{ metric("Average score", res.score.average | num if res and res.score and res.score.average is defined else "—") }}
     {{ metric("Episodes", res.training.episodes | num if res and res.training and res.training.episodes is defined else "—") }}
     {{ metric("Final ε", res.learning.finalEpsilon | fixed(2) if res and res.learning and res.learning.finalEpsilon is defined else "—") }}
     {{ metric("Avg loss", res.learning.averageLoss | fixed(4) if res and res.learning and res.learning.averageLoss is defined else "—") }}

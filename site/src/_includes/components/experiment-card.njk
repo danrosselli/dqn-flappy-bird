@@ -9,7 +9,6 @@
     {% if exp.objective %}<p class="exp-card-objective">{{ exp.objective }}</p>{% endif %}
     <dl class="exp-card-metrics">
       <div><dt>Best</dt><dd>{{ exp.results.score.best | num if exp.results and exp.results.score else "—" }}</dd></div>
-      <div><dt>Average</dt><dd>{{ exp.results.score.average | num if exp.results and exp.results.score else "—" }}</dd></div>
       <div><dt>Episodes</dt><dd>{{ exp.results.training.episodes | num if exp.results and exp.results.training else "—" }}</dd></div>
     </dl>
     <span class="exp-card-more">Open experiment <span aria-hidden="true">→</span></span>

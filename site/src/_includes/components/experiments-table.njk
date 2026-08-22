@@ -11,12 +11,11 @@
 
 <div class="table-wrap">
   <table class="exp-table">
-    <caption class="visually-hidden">Experiment comparison: best score, average score, episodes</caption>
+    <caption class="visually-hidden">Experiment comparison: best score, episodes</caption>
     <thead>
       <tr>
         <th scope="col">Experiment</th>
         <th scope="col">Best</th>
-        <th scope="col">Average</th>
         <th scope="col">Episodes</th>
         <th scope="col" class="exp-table-barcol">Best score</th>
       </tr>
@@ -30,7 +29,6 @@
           <span class="exp-table-title">{{ exp.title }}</span>
         </td>
         <td class="exp-table-num">{{ best | num }}</td>
-        <td class="exp-table-num">{{ exp.results.score.average | num if exp.results and exp.results.score else "—" }}</td>
         <td class="exp-table-num">{{ exp.results.training.episodes | num if exp.results and exp.results.training else "—" }}</td>
         <td class="exp-table-barcol">
           <span class="exp-bar" role="img" aria-label="Best score {{ best }} of {{ experiments.maxBest }}">
