@@ -160,7 +160,7 @@ function loadRuns(expDir) {
 function normalizeResults(run) {
   if (!run) return { score: {}, training: {}, learning: {} };
   const best = run.results?.bestScore ?? null;
-  const episodes = run.parameters?.episodes ?? null;
+  const episodes = run.results?.episodes ?? null;
   const { epsilonStart, epsilonMin, epsilonDecay } = run.exploration ?? {};
   let finalEpsilon = null;
   if (epsilonStart != null && epsilonDecay != null && episodes != null) {

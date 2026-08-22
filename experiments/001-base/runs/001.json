@@ -6,7 +6,6 @@
     "learningRate": 0.001,
     "gamma": 0.99,
     "batchSize": 64,
-    "episodes": 2160,
     "targetUpdateFreq": 1000,
     "trainThrottle": 2,
     "activeStrategy": "sampleRandomBasic"
@@ -27,6 +26,7 @@
   },
 
   "results": {
+    "episodes": 2160,
     "bestScore": 485
   }
 }
