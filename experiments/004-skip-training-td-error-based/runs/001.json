@@ -9,17 +9,14 @@
     "targetUpdateFreq": 1000,
     "trainThrottle": 2,
     "activeStrategy": "sampleRandomBasic",
-    "tdHistorySize": 1000,
-    "tdPercentile": 0.60,
-    "minTdThreshold": 0.15,
-    "tdWarmupThreshold": 0.40
+    "tdNormThreshold": 0.04
   },
 
   "rewards": {
     "survival": 0.05,
     "passPipe": 10,
     "collision": -20,
-    "velocityPenalty": -0.05,
+    "velocityPenalty": "-0.05 if |velY| > 700, else 0",
     "proximity": "gaussian(absDy / (scale.height/2), sigma=0.5) - 0.35, clamped >= -1.0"
   },
 

@@ -43,12 +43,9 @@
   },
   "training": {
     "tdErrorSkip": {
-      "description": "Selective training: only updates the network when the average batch TD-error exceeds an adaptive threshold (history percentile)",
-      "tdHistorySize": 1000,
-      "tdPercentile": 0.60,
-      "minTdThreshold": 0.15,
-      "tdWarmupThreshold": 0.40,
-      "warmupSamples": 50
+      "description": "Selective training: skips gradient updates when the mean normalized TD-error of the sampled batch falls below a fixed threshold",
+      "tdNormThreshold": 0.04,
+      "normalization": "mean(|target - Q(s,a)| / (|target| + 1e-6))"
     }
   },
   "exploration": {
