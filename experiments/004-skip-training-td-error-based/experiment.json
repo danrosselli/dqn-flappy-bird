@@ -1,16 +1,16 @@
 {
   "name": "004-skip-training-td-error-based",
-  "description": "Treino seletivo baseado no td-error",
+  "description": "TD-error-based selective training",
   "stateSize": 8,
   "stateFeatures": [
-    {"name": "dx", "description": "Distância horizontal ao cano atual", "normalization": "(dx / 529) - 1, range [-1, +1]"},
-    {"name": "dy", "description": "Distância vertical ao centro do gap do cano atual", "normalization": "clamp(dy / 400, -1, 1)"},
-    {"name": "velY", "description": "Velocidade vertical do pássaro", "normalization": "clamp(velY / 1000, -1, 1)"},
-    {"name": "gap", "description": "Altura do gap do cano atual", "normalization": "((gap - 200) / 105) - 1, range [-1, +1]"},
-    {"name": "dxNext", "description": "Distância horizontal ao próximo cano", "normalization": "(dx / 529) - 1, range [-1, +1]"},
-    {"name": "dyNext", "description": "Distância vertical ao centro do gap do próximo cano", "normalization": "clamp(dy / 400, -1, 1)"},
-    {"name": "gapNext", "description": "Altura do gap do próximo cano", "normalization": "((gap - 200) / 105) - 1, range [-1, +1]"},
-    {"name": "speed", "description": "Velocidade atual dos canos", "normalization": "((speed - 200) / 100) - 1, range [-1, +1]"}
+    {"name": "dx", "description": "Horizontal distance to the current pipe", "normalization": "(dx / 529) - 1, range [-1, +1]"},
+    {"name": "dy", "description": "Vertical distance to the center of the current pipe gap", "normalization": "clamp(dy / 400, -1, 1)"},
+    {"name": "velY", "description": "Vertical velocity of the bird", "normalization": "clamp(velY / 1000, -1, 1)"},
+    {"name": "gap", "description": "Height of the current pipe gap", "normalization": "((gap - 200) / 105) - 1, range [-1, +1]"},
+    {"name": "dxNext", "description": "Horizontal distance to the next pipe", "normalization": "(dx / 529) - 1, range [-1, +1]"},
+    {"name": "dyNext", "description": "Vertical distance to the center of the next pipe gap", "normalization": "clamp(dy / 400, -1, 1)"},
+    {"name": "gapNext", "description": "Height of the next pipe gap", "normalization": "((gap - 200) / 105) - 1, range [-1, +1]"},
+    {"name": "speed", "description": "Current pipe speed", "normalization": "((speed - 200) / 100) - 1, range [-1, +1]"}
   ],
   "terminalState": [0, 0, 0, 0, 0, 0, 0, 0],
   "network": {
@@ -31,7 +31,7 @@
     "reservoirSize": 40000,
     "legacySize": 50000,
     "totalCapacity": 100000,
-    "discardPolicy": "Descarta estados onde nenhum cano está visível (dx >= 1)",
+    "discardPolicy": "Discards states where no pipe is visible (dx >= 1)",
     "availableStrategies": [
       "sampleRandomBasic",
       "sampleLastPrioritizedAndRandom",
@@ -43,7 +43,7 @@
   },
   "training": {
     "tdErrorSkip": {
-      "description": "Treino seletivo: só atualiza a rede quando o TD-error médio do batch fica acima de um threshold adaptativo (percentil do histórico)",
+      "description": "Selective training: only updates the network when the average batch TD-error exceeds an adaptive threshold (history percentile)",
       "tdHistorySize": 1000,
       "tdPercentile": 0.60,
       "minTdThreshold": 0.15,
@@ -53,6 +53,6 @@
   },
   "exploration": {
     "strategy": "epsilon-greedy",
-    "actionBias": "95% idle, 5% flap durante exploração aleatória"
+    "actionBias": "95% idle, 5% flap during random exploration"
   }
 }
