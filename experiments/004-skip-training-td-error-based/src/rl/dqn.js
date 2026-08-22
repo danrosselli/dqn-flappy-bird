@@ -29,8 +29,8 @@ export const TARGET_UPDATE_FREQ = 1000;
 export const LEARNING_RATE = 0.001;
 export const TRAIN_THROTTLE = 2;
 
-// --- Prioritized Training / TD-Error Skip (versão simples) ---
-export const TD_ERROR_THRESHOLD = 0.20;   // ajuste este valor
+// --- Prioritized Training / TD-Error Skip (normalizado) ---
+export const TD_NORM_THRESHOLD = 0.30;   // ponto de partida (0.25 ~ 0.35)
 
 /* ------------------------------------------------------------
  * DQN AGENT
@@ -141,8 +141,8 @@ export class DQNAgent {
     const doneTensor = tf.tensor1d(dones);
 
     try {
-      // 1. Calcula targets + TD-error médio
-      const { targets, meanTDError } = tf.tidy(() => {
+      // 1. Calcula targets + TD-error bruto e normalizado
+      const { targets, meanTDError, meanNormTDError } = tf.tidy(() => {
         const nextQValues = this.targetModel.predict(nextStateTensor);
         const maxNextQ = nextQValues.max(1);
         const notDone = tf.logicalNot(tf.cast(doneTensor, 'bool'));
@@ -153,14 +153,25 @@ export class DQNAgent {
         const targetQArray = targetQ.arraySync();
 
         let totalAbsError = 0;
+        let totalNormError = 0;
+
         for (let i = 0; i < BATCH_SIZE; i++) {
           const currentQ = qValuesArray[i][actions[i]];
           const target = targetQArray[i];
-          totalAbsError += Math.abs(target - currentQ);
+
+          const absError = Math.abs(target - currentQ);
+          totalAbsError += absError;
+
+          // TD-error normalizado pelo |target|
+          const normError = absError / (Math.abs(target) + 1e-6);
+          totalNormError += normError;
+
+          // Prepara o target para o fit
           qValuesArray[i][actions[i]] = target;
         }
 
         const meanTDError = totalAbsError / BATCH_SIZE;
+        const meanNormTDError = totalNormError / BATCH_SIZE;
         const targetsTensor = tf.tensor2d(qValuesArray, [BATCH_SIZE, 2]);
 
         nextQValues.dispose();
@@ -168,14 +179,14 @@ export class DQNAgent {
         targetQ.dispose();
         qValues.dispose();
 
-        return { targets: targetsTensor, meanTDError };
+        return { targets: targetsTensor, meanTDError, meanNormTDError };
       });
 
-      // 2. Decide só com base no TD-error
+      // 2. Decide com base no TD-error NORMALIZADO
       this.totalTrainAttempts++;
-      this.lastTDError = meanTDError;
+      this.lastTDError = meanNormTDError;
 
-      if (meanTDError >= TD_ERROR_THRESHOLD) {
+      if (meanNormTDError >= TD_NORM_THRESHOLD) {
         // Treina
         await this.model.fit(stateTensor, targets, {
           epochs: 1,
@@ -219,7 +230,7 @@ export class DQNAgent {
       attempts,
       pct: pct.toFixed(1),
       lastTDError: this.lastTDError ? this.lastTDError.toFixed(3) : '—',
-      threshold: TD_ERROR_THRESHOLD.toFixed(3)
+      threshold: TD_NORM_THRESHOLD.toFixed(3)
     };
   }
 
