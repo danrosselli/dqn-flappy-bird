@@ -2,38 +2,38 @@
    Neural network visualization.
    - JS enabled + motion allowed → animated canvas (assets/js/net.js)
    - otherwise → static SVG fallback below
+   NOTE: no blank lines inside <figure> — markdown would split
+   the SVG into paragraphs and break the diagram.
    ============================================================ #}
 <figure class="nn-viz" data-nn-viz role="img"
   aria-label="Diagram of the policy network: 8 input values, two hidden layers of 64 units each, and 2 outputs — the Q-values for IDLE and FLAP.">
   <canvas class="nn-canvas" width="720" height="360" aria-hidden="true"></canvas>
-
   <svg class="nn-fallback" viewBox="0 0 720 360" fill="none" aria-hidden="true">
     <rect class="nnf-frame" x="1" y="1" width="718" height="358" rx="6"/>
-    {% set layers = [
+    {%- set layers = [
       { "label": "8", "sub": "state", "nodes": 8 },
       { "label": "64", "sub": "relu", "nodes": 4 },
       { "label": "64", "sub": "relu", "nodes": 4 },
       { "label": "2", "sub": "Q-values", "nodes": 2 }
-    ] %}
-    {% for layer in layers %}
-      {% set cx = 70 + loop.index0 * 116 %}
-      {% for n in range(layer.nodes) %}
-        {% set cy = 180 + (loop.index0 - (layer.nodes - 1) / 2) * 34 %}
+    ] -%}
+    {%- for layer in layers -%}
+      {%- set cx = 70 + loop.index0 * 116 -%}
+      {%- for n in range(layer.nodes) -%}
+        {%- set cy = 180 + (loop.index0 - (layer.nodes - 1) / 2) * 34 -%}
         <circle class="nnf-node" cx="{{ cx }}" cy="{{ cy }}" r="7"/>
-        {% if not loop.parent.loop.first %}
-          {% set px = cx - 116 %}
-          {% set pnodes = layers[loop.parent.loop.index0 - 1].nodes %}
-          {% for m in range(pnodes) %}
-            {% set py = 180 + (loop.index0 - (pnodes - 1) / 2) * 34 %}
+        {%- if not loop.parent.loop.first -%}
+          {%- set px = cx - 116 -%}
+          {%- set pnodes = layers[loop.parent.loop.index0 - 1].nodes -%}
+          {%- for m in range(pnodes) -%}
+            {%- set py = 180 + (loop.index0 - (pnodes - 1) / 2) * 34 -%}
             <line class="nnf-edge" x1="{{ px + 8 }}" y1="{{ py }}" x2="{{ cx - 8 }}" y2="{{ cy }}"/>
-          {% endfor %}
-        {% endif %}
-      {% endfor %}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endfor -%}
       <text class="nnf-label" x="{{ cx }}" y="336" text-anchor="middle">{{ layer.label }}</text>
       <text class="nnf-sub" x="{{ cx }}" y="24" text-anchor="middle">{{ layer.sub }}</text>
-    {% endfor %}
+    {%- endfor -%}
   </svg>
-
   <figcaption>
     Policy network — {{ impl.network.totalParams | num }} trainable parameters.
     Nodes are drawn to scale schematically; labels show the real layer sizes.
