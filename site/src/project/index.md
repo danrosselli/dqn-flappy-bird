@@ -36,6 +36,25 @@ The environment also has a twist of its own: in this implementation, **pipe spee
 with the score**. The better the agent gets, the faster the world moves — a built-in
 difficulty curriculum.
 
+## Sensors, not screens
+
+Most Flappy Bird RL demos hand the agent a screenshot: convolutional networks, third-person
+vision — as if a person were playing a game. This project deliberately goes the other way.
+The bird orients itself exclusively through **state variables** — distances to pipes, gap
+geometry, velocity, pipe speed — exactly like the readings a physical machine would get
+from **sensors**. There is no camera and nothing to look at; behavior has to emerge from
+sparse, low-dimensional measurements alone.
+
+That constraint is the point. The long-term goal is to carry this technique into **small
+embedded robots**: control boards with tight memory budgets, simple motors, cheap sensors —
+hardware that cannot afford a heavyweight vision model but can comfortably run a small dense
+network. Flappy Bird, implemented this way, becomes a faithful rehearsal for that setting:
+can a tiny network, driven only by sensor-like state, respond well to **continuous training**
+and learn a policy autonomously?
+
+Studying continuous learning under these restrictions — here, safely inside a browser tab —
+opens the door to autonomous, self-improving behavior on real, resource-limited hardware.
+
 ## Why reinforcement learning?
 
 The project is an excuse to study RL hands-on. Reinforcement learning is the right
