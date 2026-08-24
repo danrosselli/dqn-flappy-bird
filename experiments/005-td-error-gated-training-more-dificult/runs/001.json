@@ -1,0 +1,33 @@
+{
+  "run": 1,
+  "createdAt": "2026-08-12T00:30:00-03:00",
+
+  "parameters": {
+    "learningRate": 0.001,
+    "gamma": 0.99,
+    "batchSize": 64,
+    "targetUpdateFreq": 1000,
+    "trainThrottle": 2,
+    "activeStrategy": "sampleRandomBasic",
+    "tdNormThreshold": 0.04
+  },
+
+  "rewards": {
+    "survival": 0.05,
+    "passPipe": 10,
+    "collision": -20,
+    "velocityPenalty": "-0.05 if |velY| > 700, else 0",
+    "proximity": "gaussian(absDy / (scale.height/2), sigma=0.5) - 0.35, clamped >= -1.0"
+  },
+
+  "exploration": {
+    "epsilonStart": 0.9,
+    "epsilonMin": 0.0,
+    "epsilonDecay": 0.9995
+  },
+
+  "results": {
+    "episodes": 290,
+    "bestScore": 5540
+  }
+}
