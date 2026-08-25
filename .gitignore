@@ -146,3 +146,6 @@ site/_site/
 
 # Keep the website lockfile versioned for reproducible CI builds
 !site/bun.lock
+
+# Experiment training data (auto-generated episode logs)
+experiments/*/data/

@@ -3,6 +3,7 @@ import {
 	ACTIONS, ACTION_FLAP, ACTION_IDLE,
 	DQNAgent, resetBrain, epsilon
 } from '../../rl/dqn';
+import { recordEpisode } from '../../rl/episodeRecorder.js';
 
 export class Game extends Phaser.Scene {
 	constructor() {
@@ -428,6 +429,7 @@ export class Game extends Phaser.Scene {
 		}
 
 		this.highScore = Math.max(this.highScore, this.score);
+		recordEpisode(this.generation, this.score, epsilon);
 		this.generation++;
 		await this.agent.maybeExpandNetwork(this.generation);
 		await this.agent.saveBrain(this.generation, this.highScore);
