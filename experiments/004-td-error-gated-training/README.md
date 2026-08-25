@@ -1,3 +1,5 @@
+# TD-error-gated training
+
 ## Objective
 
 Evaluate whether gating gradient updates on the batch TD-error improves training efficiency, by skipping updates that carry little learning signal instead of running them unconditionally on every sampled batch.

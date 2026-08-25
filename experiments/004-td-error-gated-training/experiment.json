@@ -1,5 +1,5 @@
 {
-  "name": "004-td-error-gated-training",
+  "name": "004-skip-training-td-error-based",
   "description": "TD-error-gated training",
   "stateSize": 8,
   "stateFeatures": [
