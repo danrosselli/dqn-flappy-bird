@@ -94,7 +94,7 @@ export class Game extends Phaser.Scene {
 			this.scale.width - 20,  // Mesmo X do texto (alinhado à direita)
 			20,                     // Mesmo Y do topo do texto
 			200,                    // Largura fixa (ajuste se precisar mais/menos)
-			420,                    // Altura aproximada (cobre todo o texto)
+			465,                    // Altura aproximada (cobre todo o texto)
 			0x000000,               // Cor preta
 			0.2                     // Alpha 0.6 = semi-transparente
 		).setOrigin(1, 0);          // Origem no canto superior direito
@@ -304,7 +304,9 @@ export class Game extends Phaser.Scene {
 			`Action: ${actionStr}\n` +
 			`Train: ${trainStats.pct}%\n` +
 			`TD: ${trainStats.lastTDError}\n` +
-			`Thr: ${trainStats.threshold}`
+			`Thr: ${trainStats.threshold}\n` +
+			`Sample: ${trainStats.sampleSize}\n` +
+			`Valid: ${trainStats.lastValid}/${trainStats.lastSampled}`
 		);
 
 	}

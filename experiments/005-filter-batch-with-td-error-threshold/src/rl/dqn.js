@@ -3,6 +3,12 @@
  * ------------------------------------------------------------
  * Uses TensorFlow.js to implement DQN with a neural network.
  * States are continuous [dx, dy, velY], no discretization.
+ *
+ * Adaptive TD-error filtering:
+ * - Samples a variable number of transitions
+ * - Keeps only those with normalized TD-error >= threshold
+ * - Adjusts next sample size based on pass rate
+ * - Throttled training (every 2 steps)
  * ============================================================ */
 
 import * as tf from '@tensorflow/tfjs';
@@ -24,13 +30,15 @@ export const gamma = 0.99;
 export let epsilon = 0.9;
 export const EPSILON_MIN = 0.000;
 export const EPSILON_DECAY = 0.9995;
-export const BATCH_SIZE = 64;
 export const TARGET_UPDATE_FREQ = 1000;
 export const LEARNING_RATE = 0.001;
 export const TRAIN_THROTTLE = 2;
 
-// --- Prioritized Training / TD-Error Skip (normalizado) ---
-export const TD_NORM_THRESHOLD = 0.04;   // ponto de partida (0.25 ~ 0.35)
+// --- Adaptive Prioritized Training / TD-Error Filter ---
+export const TD_NORM_THRESHOLD = 0.04;
+export const INITIAL_SAMPLE_SIZE = 32;
+export const MIN_VALID_SAMPLES = 12;
+export const MAX_SAMPLE_SIZE = 128;
 
 /* ------------------------------------------------------------
  * DQN AGENT
@@ -50,9 +58,12 @@ export class DQNAgent {
     this.stepCount = 0;
     this.trainingInProgress = false;
 
-    // Estado do Prioritized Training
+    // Adaptive sampling state
+    this.sampleSize = INITIAL_SAMPLE_SIZE;
     this.batchesSinceLastTrain = 0;
     this.lastTDError = 0;
+    this.lastValidCount = 0;
+    this.lastSampleSize = INITIAL_SAMPLE_SIZE;
 
     // Contadores para o HUD
     this.totalTrainAttempts = 0;
@@ -104,12 +115,13 @@ export class DQNAgent {
   async train() {
     this.stepCount++;
 
-    // Throttle
+    // Throttle: treina a cada 2 passos
     if (this.stepCount % TRAIN_THROTTLE !== 0) {
       return;
     }
 
-    if (this.replayBuffer.size() < BATCH_SIZE) return;
+    // Precisa ter pelo menos o tamanho atual de amostragem no buffer
+    if (this.replayBuffer.size() < this.sampleSize) return;
 
     if (this.trainingInProgress) {
       console.log('Training skipped: Already in progress');
@@ -117,9 +129,11 @@ export class DQNAgent {
     }
 
     this.trainingInProgress = true;
+    this.totalTrainAttempts++;
 
-    // Amostra o batch
-    const batch = this.replayBuffer.sampleRandomBasic(BATCH_SIZE);
+    // Amostra o batch com tamanho adaptativo
+    const batch = this.replayBuffer.sampleRandomBasic(this.sampleSize);
+    const currentSampleSize = batch.length;
 
     const states = [];
     const actions = [];
@@ -135,14 +149,20 @@ export class DQNAgent {
       dones.push(transition.done ? 1 : 0);
     });
 
-    const stateTensor = tf.tensor2d(states, [BATCH_SIZE, STATE_SIZE]);
-    const nextStateTensor = tf.tensor2d(nextStates, [BATCH_SIZE, STATE_SIZE]);
+    const stateTensor = tf.tensor2d(states, [currentSampleSize, STATE_SIZE]);
+    const nextStateTensor = tf.tensor2d(nextStates, [currentSampleSize, STATE_SIZE]);
     const rewardTensor = tf.tensor1d(rewards);
     const doneTensor = tf.tensor1d(dones);
 
     try {
-      // 1. Calcula targets + TD-error bruto e normalizado
-      const { targets, meanTDError, meanNormTDError } = tf.tidy(() => {
+      // 1. Calcula targets + filtra por TD-error normalizado individual
+      const {
+        validStates,
+        validTargets,
+        meanTDError,
+        meanNormTDError,
+        validCount
+      } = tf.tidy(() => {
         const nextQValues = this.targetModel.predict(nextStateTensor);
         const maxNextQ = nextQValues.max(1);
         const notDone = tf.logicalNot(tf.cast(doneTensor, 'bool'));
@@ -152,57 +172,75 @@ export class DQNAgent {
         const qValuesArray = qValues.arraySync();
         const targetQArray = targetQ.arraySync();
 
+        const validStatesArr = [];
+        const validTargetsArr = [];
         let totalAbsError = 0;
         let totalNormError = 0;
 
-        for (let i = 0; i < BATCH_SIZE; i++) {
+        for (let i = 0; i < currentSampleSize; i++) {
           const currentQ = qValuesArray[i][actions[i]];
           const target = targetQArray[i];
 
           const absError = Math.abs(target - currentQ);
-          totalAbsError += absError;
-
-          // TD-error normalizado pelo |target|
           const normError = absError / (Math.abs(target) + 1e-6);
+
+          totalAbsError += absError;
           totalNormError += normError;
 
-          // Prepara o target para o fit
-          qValuesArray[i][actions[i]] = target;
+          // Mantém apenas amostras com TD-error normalizado relevante
+          if (normError >= TD_NORM_THRESHOLD) {
+            const sampleTarget = qValuesArray[i].slice(); // copia [Q_idle, Q_flap]
+            sampleTarget[actions[i]] = target;
+
+            validStatesArr.push(states[i]);
+            validTargetsArr.push(sampleTarget);
+          }
         }
 
-        const meanTDError = totalAbsError / BATCH_SIZE;
-        const meanNormTDError = totalNormError / BATCH_SIZE;
-        const targetsTensor = tf.tensor2d(qValuesArray, [BATCH_SIZE, 2]);
+        const meanTDError = totalAbsError / currentSampleSize;
+        const meanNormTDError = totalNormError / currentSampleSize;
 
         nextQValues.dispose();
         maxNextQ.dispose();
         targetQ.dispose();
         qValues.dispose();
 
-        return { targets: targetsTensor, meanTDError, meanNormTDError };
+        return {
+          validStates: validStatesArr,
+          validTargets: validTargetsArr,
+          meanTDError,
+          meanNormTDError,
+          validCount: validStatesArr.length
+        };
       });
 
-      // 2. Decide com base no TD-error NORMALIZADO
-      this.totalTrainAttempts++;
       this.lastTDError = meanNormTDError;
+      this.lastValidCount = validCount;
+      this.lastSampleSize = currentSampleSize;
 
-      if (meanNormTDError >= TD_NORM_THRESHOLD) {
-        // Treina
-        await this.model.fit(stateTensor, targets, {
+      // 2. Treina somente se sobrou um número mínimo de amostras válidas
+      if (validCount >= MIN_VALID_SAMPLES) {
+        const validStateTensor = tf.tensor2d(validStates, [validCount, STATE_SIZE]);
+        const targetsTensor = tf.tensor2d(validTargets, [validCount, 2]);
+
+        await this.model.fit(validStateTensor, targetsTensor, {
           epochs: 1,
-          batchSize: BATCH_SIZE,
+          batchSize: validCount,
           verbose: 0
         });
 
         this.decayEpsilon();
         this.totalTrained++;
         this.batchesSinceLastTrain = 0;
+
+        validStateTensor.dispose();
+        targetsTensor.dispose();
       } else {
-        // Pula
         this.batchesSinceLastTrain++;
       }
 
-      targets.dispose();
+      // 3. Ajusta o tamanho de amostragem para a próxima vez
+      this._adjustSampleSize(validCount, currentSampleSize);
 
     } catch (error) {
       console.error('Training error:', error);
@@ -220,17 +258,54 @@ export class DQNAgent {
     }
   }
 
+  /**
+   * Ajusta this.sampleSize com base na taxa de sobrevivência do filtro.
+   */
+  _adjustSampleSize(validCount, sampledCount) {
+    if (sampledCount === 0) return;
+
+    const passRate = validCount / sampledCount;
+
+    if (validCount < MIN_VALID_SAMPLES) {
+      // Quase nada passou → aumenta bastante
+      this.sampleSize = Math.min(
+        Math.ceil(this.sampleSize * 2),
+        MAX_SAMPLE_SIZE
+      );
+    } else if (passRate < 0.4) {
+      // Filtro rejeitando muito → aumenta amostragem
+      this.sampleSize = Math.min(
+        Math.ceil(this.sampleSize * 1.5),
+        MAX_SAMPLE_SIZE
+      );
+    } else if (passRate > 0.8 && this.sampleSize > INITIAL_SAMPLE_SIZE) {
+      // Quase tudo passa → pode diminuir um pouco
+      this.sampleSize = Math.max(
+        INITIAL_SAMPLE_SIZE,
+        Math.floor(this.sampleSize * 0.8)
+      );
+    }
+    // Caso intermediário (0.4 ~ 0.8): mantém o tamanho atual
+  }
+
   getTrainStats() {
     const attempts = this.totalTrainAttempts || 0;
     const trained = this.totalTrained || 0;
-    const pct = attempts > 0 ? (trained / attempts) * 100 : 0;
+
+    // Taxa de aproveitamento da última amostragem
+    const passRate = this.lastSampleSize > 0
+      ? (this.lastValidCount / this.lastSampleSize) * 100
+      : 0;
 
     return {
       trained,
       attempts,
-      pct: pct.toFixed(1),
+      pct: passRate.toFixed(1),          // agora representa % de amostras que passaram no filtro
       lastTDError: this.lastTDError ? this.lastTDError.toFixed(3) : '—',
-      threshold: TD_NORM_THRESHOLD.toFixed(3)
+      threshold: TD_NORM_THRESHOLD.toFixed(3),
+      sampleSize: this.sampleSize,
+      lastValid: this.lastValidCount,
+      lastSampled: this.lastSampleSize
     };
   }
 
