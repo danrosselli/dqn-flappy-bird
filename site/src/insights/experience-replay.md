@@ -47,6 +47,61 @@ guaranteed minimum replacement chance). The design tension being managed:
 - **Long memory** matters because competence at speed 200 shouldn't be forgotten by
   the time the world reaches 400.
 
+## What each transition carries
+
+Every transition stored in the buffer is a five-tuple:
+
+| Field | Meaning | Example in Flappy Bird |
+|---|---|---|
+| `state` | The 8-value vector before the action | `[dx, dy, velY, gap, dxNext, ...]` |
+| `action` | What the agent chose (0 = IDLE, 1 = FLAP) | `0` or `1` |
+| `reward` | The scalar reward for that step | survival + proximity + bonuses |
+| `nextState` | The 8-value vector after the action | new `[dx, dy, velY, ...]` |
+| `done` | Whether the episode ended | `true` / `false` |
+
+The buffer's `add()` method (`src/rl/replayBuffer.js`) appends these into the
+circular storage, overwriting the oldest entries when capacity is reached.
+
+## From buffer to training
+
+Training starts by sampling a random mini-batch:
+
+```javascript
+const batch = this.replayBuffer.sampleRandomBasic(BATCH_SIZE);  // BATCH_SIZE = 64
+```
+
+The 64 transitions are split into parallel arrays (`states`, `actions`, `rewards`,
+`nextStates`, `dones`) and converted to tensors. Then the Bellman target is
+computed for each:
+
+```text
+target = reward + γ · max Q_target(nextState) · (1 − done)
+```
+
+The online network's prediction for the taken action is compared against this
+target, and only that output is updated via `model.fit()`.
+
+## The TD-error quality gate
+
+Before committing to a `model.fit`, the code checks whether the batch is worth
+training on:
+
+```text
+For each transition in the batch:
+  normError = |target − predicted_Q| / (|target| + ε)
+
+meanNormTDError = average(normErrors)
+
+if meanNormTDError >= TD_NORM_THRESHOLD (0.04):
+    train the batch
+else:
+    skip — the network already predicts well enough
+```
+
+This is a batch-level heuristic: if the average normalized error is small, training
+would add noise rather than signal. It's cheaper than per-sample prioritization
+and avoids wasting compute on batches the network already understands.
+
 ## Where prioritization could enter
 
 Schaul et al.'s prioritized replay samples transitions by TD-error magnitude — learn

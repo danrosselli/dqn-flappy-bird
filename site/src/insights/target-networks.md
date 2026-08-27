@@ -38,6 +38,40 @@ This project syncs every **1,000 training steps**. The trade-off is intuitive:
 - **Sync too rarely** and targets lag behind what the online network has learned,
   slowing credit assignment for newly discovered good behavior.
 
+## The two networks in code
+
+The agent maintains two networks with identical architecture (`src/rl/dqn.js`):
+
+```javascript
+this.model = this.buildModel();        // online network — trained every fit()
+this.targetModel = this.buildModel();   // frozen copy — only computes targets
+this.targetModel.setWeights(this.model.getWeights());  // initial sync
+```
+
+| Network | Role | Updated when |
+|---|---|---|
+| `model` | Online network — predicts Q(s, a) | Every `model.fit()` call |
+| `targetModel` | Target network — computes r + γ·max Q(s′) | Every 1,000 training steps |
+
+The online network learns continuously. The target network is a snapshot that
+provides stable regression targets between syncs.
+
+## The synchronization mechanism
+
+```javascript
+if (this.stepCount % TARGET_UPDATE_FREQ === 0) {  // TARGET_UPDATE_FREQ = 1000
+  this.targetModel.setWeights(this.model.getWeights());
+}
+```
+
+`setWeights` copies all layer weights from the online network into the target — a
+full replacement, not a moving average. The interval trades off two failure modes:
+
+- **Sync too often** → targets move as fast as the online network, recreating the
+  instability the target network was meant to fix.
+- **Sync too rarely** → targets become stale, slowing credit assignment for
+  recently discovered good behavior.
+
 ## What would count as evidence
 
 The right way to evaluate sync intervals here is not vibes: fix everything else,

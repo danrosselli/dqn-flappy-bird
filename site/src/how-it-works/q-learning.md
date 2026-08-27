@@ -19,8 +19,7 @@ trivial — always pick the action with the highest Q.
 The definition of the optimal Q-function is recursive:
 
 ```text
-Q*(s, a) = r + γ · max Q*(s′, a′)
-                  a′
+Q*(s, a) = r + γ · max_a′ Q*(s′, a′)
 ```
 
 The value of an action now equals the immediate reward plus the discounted value of
