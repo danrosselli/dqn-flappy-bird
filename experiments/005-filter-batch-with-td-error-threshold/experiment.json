@@ -1,6 +1,6 @@
 {
-  "name": "004-td-error-gated-training",
-  "description": "TD-error-gated training",
+  "name": "005-filter-batch-with-td-error-threshold",
+  "description": "Filter batch with TD error threshold",
   "stateSize": 8,
   "stateFeatures": [
     {"name": "dx", "description": "Horizontal distance to the current pipe", "normalization": "(dx / 529) - 1, range [-1, +1]"},

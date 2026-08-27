@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import {
 	ACTIONS, ACTION_FLAP, ACTION_IDLE,
 	DQNAgent, resetBrain, epsilon
-} from '../../rl/dqn';
+} from '../../rl/dqn.js';
 import { recordEpisode } from '../../rl/episodeRecorder.js';
 
 export class Game extends Phaser.Scene {
