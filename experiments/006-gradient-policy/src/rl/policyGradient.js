@@ -19,7 +19,7 @@ export const STATE_SIZE = 8;
 export const ACTION_SIZE = 2;
 
 export const gamma = 0.99;
-export const LEARNING_RATE = 0.001;
+export const LEARNING_RATE = 0.003;
 
 const POLICY_EPSILON = 1e-7;
 
