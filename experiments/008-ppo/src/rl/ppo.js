@@ -138,26 +138,29 @@ export class PPOAgent {
   }
 
   /**
-   * Collect a step into the rollout buffer. When the buffer
-   * is full, triggers PPO training.
+   * Collect one transition.
+   *
+   * bootstrapValue is the value of the NEXT state after this transition.
+   * It is only needed when this step closes a non-terminal rollout.
    */
-  collectStep(state, action, reward, logProb, value, done) {
+  collectStep(state, action, reward, logProb, value, done, bootstrapValue = 0) {
     this.buffer.add(state, action, reward, value, logProb, done);
 
     if (this.buffer.isReady()) {
-      return this.train(value);
+      return this.train(done ? 0 : bootstrapValue);
     }
+
     return null;
   }
 
   /**
    * Force a PPO update with the current buffer content.
-   * Used at episode end when the buffer is not yet full.
-   * @param {number} lastValue - V(s_last) for bootstrap, 0 if terminal
+   * At a terminal episode boundary, pass 0.
+   * For a non-terminal partial rollout, pass V(nextState).
    */
-  async forceUpdate(lastValue) {
+  async forceUpdate(bootstrapValue = 0) {
     if (this.buffer.size === 0 || this.trainingInProgress) return null;
-    return this.train(lastValue);
+    return this.train(bootstrapValue);
   }
 
   /**
@@ -183,12 +186,8 @@ export class PPOAgent {
       const advStd = advantages.sub(advMean).square().mean().add(1e-8).sqrt();
       const normalizedAdvantages = advantages.sub(advMean).div(advStd);
 
-      // Shuffle indices for mini-batches
+      // Shuffle independently for every PPO epoch.
       const indices = Array.from({ length: batchSize }, (_, i) => i);
-      for (let i = indices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [indices[i], indices[j]] = [indices[j], indices[i]];
-      }
 
       let totalActorLoss = 0;
       let totalCriticLoss = 0;
@@ -197,6 +196,11 @@ export class PPOAgent {
 
       // 3. PPO epochs
       for (let epoch = 0; epoch < PPO_EPOCHS; epoch++) {
+        for (let i = indices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+
         for (let start = 0; start < batchSize; start += MINI_BATCH_SIZE) {
           const end = Math.min(start + MINI_BATCH_SIZE, batchSize);
 

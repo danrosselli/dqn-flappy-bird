@@ -200,34 +200,48 @@ export class Game extends Phaser.Scene {
 			this.proximityReward = 0;
 		}
 
-		// 3. PPO: collect step into buffer (trains automatically when full)
+		// 3. Evaluate the CURRENT state before any possible PPO update.
+		// This value is the correct bootstrap V(s_t) for the previous transition.
+		const currentValue = this.agent.getValue(currentState);
+
+		// 4. PPO: close the previous transition.
+		//
+		// The transition stored on the previous frame is: 
+		//   (lastState, lastAction, reward, currentState)
+		// Therefore currentValue = V(currentState) is the correct bootstrap
+		// value if this transition becomes the end of a rollout.
 		if (this.lastState !== null && this.lastAction !== null) {
 			const reward = this.proximityReward + velPenalty + flapPenalty + this.bonusReward;
 			this.agent.collectStep(
-				this.lastState, this.lastAction, reward,
-				this.lastLogProb, this.lastValue, false
+				this.lastState,
+				this.lastAction,
+				reward,
+				this.lastLogProb,
+				this.lastValue,
+				false,
+				currentValue
 			);
 		}
 		this.bonusReward = 0;
 
-		// 4. Escolher a ação
+		// 5. Choose the next action AFTER a possible PPO update.
 		const policyDecision = this.agent.chooseAction(currentState);
 		const action = policyDecision.action;
 
-		// 5. Executar Ação
+		// 6. Executar Ação
 		let actionStr = "IDLE";
 		if (action === ACTION_FLAP) {
 			actionStr = "FLAP";
 			this.flap();
 		}
 
-		// 6. Armazenar para Próximo Frame
+		// 7. Armazenar para Próximo Frame
 		this.lastState = currentState;
 		this.lastAction = action;
 		this.lastLogProb = policyDecision.logProb;
 		this.lastValue = policyDecision.value;
 
-		// 7. Física e Limpeza
+		// 8. Física e Limpeza
 		if (this.bird.angle < 20) {
 			this.bird.angle += 1;
 		}
@@ -251,7 +265,7 @@ export class Game extends Phaser.Scene {
 			this.hitPipe();
 		}
 
-		// 8. Atualizar HUD
+		// 9. Atualizar HUD
 		const policy = this.agent.getPolicy(currentState);
 		const buffer = this.agent.buffer;
 		this.hudText.setText(

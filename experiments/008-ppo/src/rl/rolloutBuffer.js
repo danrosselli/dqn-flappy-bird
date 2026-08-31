@@ -66,23 +66,26 @@ export class RolloutBuffer {
 
   /**
    * Compute GAE-lambda advantages and discounted returns.
-   * Must be called after the rollout is filled and before get().
    *
-   * A_t = δ_t + γλ δ_{t+1} + (γλ)^2 δ_{t+2} + ...
-   * where δ_t = r_t + γ V(s_{t+1}) - V(s_t)
+   * For the final stored transition we need V(s_{T}), i.e. the value
+   * of the state AFTER the last stored action. If the last transition
+   * is terminal, bootstrapValue must be 0.
    *
-   * @param {number} lastValue - V(s_{T}) for bootstrap (0 if terminal)
+   * A_t = δ_t + γλ A_{t+1}
+   * δ_t = r_t + γ V(s_{t+1}) - V(s_t)
+   *
+   * @param {number} bootstrapValue - V(s_T), or 0 when terminal
    * @param {number} gamma - Discount factor
    * @param {number} lam - GAE lambda
    */
-  computeAdvantages(lastValue, gamma = 0.99, lam = 0.95) {
+  computeAdvantages(bootstrapValue, gamma = 0.99, lam = 0.95) {
     this.advantages = new Float32Array(this.capacity);
     this.returns = new Float32Array(this.capacity);
 
     let gae = 0;
 
     for (let t = this.ptr - 1; t >= 0; t--) {
-      const nextValue = t === this.ptr - 1 ? lastValue : this.values[t + 1];
+      const nextValue = t === this.ptr - 1 ? bootstrapValue : this.values[t + 1];
       const nextNonTerminal = this.dones[t] ? 0 : 1;
 
       const delta = this.rewards[t] + gamma * nextValue * nextNonTerminal - this.values[t];
