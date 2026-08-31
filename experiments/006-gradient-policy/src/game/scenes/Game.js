@@ -53,7 +53,6 @@ export class Game extends Phaser.Scene {
 
 		this.bird = this.physics.add.sprite(120, this.scale.height / 2, 'bird_mid');
 		this.bird.setGravityY(1000);
-		this.bird.setCollideWorldBounds(true);
 
 		if (!this.anims.exists('fly')) {
 			this.anims.create({
@@ -196,10 +195,12 @@ export class Game extends Phaser.Scene {
 		];
 
 		// 2. Calcular Recompensa de Proximidade (nova versão mais estável)
-		const survivalReward = 0.05;  // Pequeno incentivo fixo por frame vivo
 
 		// Penalidade leve por velocidade vertical extrema (evita loops infinitos de flap)
 		const velPenalty = Math.abs(velY) > 700 ? -0.05 : 0;
+
+		// Custo por flap: sinal dependente da ação pro REINFORCE aprender a não espamar
+		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.1 : 0;
 
 		// Recompensa de alinhamento com o gap (só se houver pipe próximo)
 		if (closestPipe) {
@@ -213,16 +214,12 @@ export class Game extends Phaser.Scene {
 			// Normalização ampla: 0 = centro, 1 = na distância máxima considerada
 			const normalizedDy = absDy / maxConsideredDy;
 
-			// Gaussiana mais larga (sigma maior) com offset negativo
+			// Gaussiana mais larga (sigma maior) sem offset
 			// sigma = 0.8 dá uma curva que cobre bem a tela
 			const sigma = 0.5;
 			const gaussian = Math.exp(-Math.pow(normalizedDy, 2) / (2 * sigma * sigma));
 
-			// Offset para permitir negativos quando muito longe
-			this.proximityReward = gaussian - 0.35;
-
-			// Opcional: clamp extremo para não dar penalidade absurda
-			this.proximityReward = Math.max(this.proximityReward, -1.0);
+			this.proximityReward = gaussian;
 		} else {
 			this.proximityReward = 0;
 		}
@@ -231,7 +228,7 @@ export class Game extends Phaser.Scene {
 		// REINFORCE não usa replay buffer: a trajetória atual vive
 		// somente até o final deste episódio.
 		if (this.lastState !== null && this.lastAction !== null) {
-			const reward = survivalReward + this.proximityReward + velPenalty + this.bonusReward;
+			const reward = this.proximityReward + velPenalty + flapPenalty + this.bonusReward;
 			this.agent.recordStep(this.lastState, this.lastAction, reward);
 		}
 		this.bonusReward = 0;
@@ -244,9 +241,7 @@ export class Game extends Phaser.Scene {
 		let actionStr = "IDLE";
 		if (action === ACTION_FLAP) {
 			actionStr = "FLAP";
-			if (this.bird.body.velocity.y > -200) {
-				this.flap();
-			}
+			this.flap();
 		}
 
 		// 6. Armazenar para Próximo Frame

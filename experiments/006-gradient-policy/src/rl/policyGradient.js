@@ -19,9 +19,8 @@ export const STATE_SIZE = 8;
 export const ACTION_SIZE = 2;
 
 export const gamma = 0.99;
-export const LEARNING_RATE = 0.0003;
+export const LEARNING_RATE = 0.001;
 
-const RETURN_EPSILON = 1e-8;
 const POLICY_EPSILON = 1e-7;
 
 export class PolicyGradientAgent {
@@ -140,10 +139,9 @@ export class PolicyGradientAgent {
       const actionTensor = tf.tensor1d(actions, 'int32');
       const returnTensor = tf.tensor1d(returns);
 
-      // Normalizing the returns substantially reduces update variance.
-      const normalizedReturns = tf.tidy(() => {
+      const advantages = tf.tidy(() => {
         const mean = returnTensor.mean();
-        const std = tf.sqrt(returnTensor.sub(mean).square().mean().add(RETURN_EPSILON));
+        const std = returnTensor.sub(mean).square().mean().sqrt().add(1e-8);
         return returnTensor.sub(mean).div(std);
       });
 
@@ -156,7 +154,7 @@ export class PolicyGradientAgent {
 
         // REINFORCE loss: - G_t * log(pi(a_t | s_t))
         return selectedLogProbabilities
-          .mul(normalizedReturns)
+          .mul(advantages)
           .neg()
           .mean();
       });
@@ -167,7 +165,7 @@ export class PolicyGradientAgent {
 
       value.dispose();
       Object.values(grads).forEach(gradient => gradient.dispose());
-      normalizedReturns.dispose();
+      advantages.dispose();
       returnTensor.dispose();
       actionTensor.dispose();
       stateTensor.dispose();
