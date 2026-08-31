@@ -1,9 +1,8 @@
 // persistenceManager.js
 // ------------------------------------------------------------
-// Persistence for the Policy Gradient experiment.
-// Only the neural-network model and experiment metadata are kept.
-// Replay buffers are intentionally not persisted because REINFORCE
-// uses a temporary trajectory for each episode.
+// Persistence for the Actor-Critic experiment.
+// Both the actor and critic networks are persisted in IndexedDB.
+// No replay buffer is used — updates happen online per step.
 // ------------------------------------------------------------
 
 import * as tf from '@tensorflow/tfjs';
@@ -14,14 +13,16 @@ const EXPERIMENT_NAME =
     ? experimentConfig.name
     : 'experiment';
 
-const DB_NAME = `FlappyPolicyGradientDB_${EXPERIMENT_NAME}`;
+const DB_NAME = `FlappyActorCriticDB_${EXPERIMENT_NAME}`;
 const DB_VERSION = 1;
 const GAME_DATA_STORE = 'gameData';
 
 export class PersistenceManager {
   constructor() {
-    this.modelPath =
-      `indexeddb://flappy-policy-gradient-model-${EXPERIMENT_NAME}`;
+    this.actorPath =
+      `indexeddb://flappy-actor-model-${EXPERIMENT_NAME}`;
+    this.criticPath =
+      `indexeddb://flappy-critic-model-${EXPERIMENT_NAME}`;
   }
 
   async openDB() {
@@ -41,32 +42,60 @@ export class PersistenceManager {
     });
   }
 
-  async saveModel(model) {
+  async saveActor(model) {
     try {
-      await model.save(this.modelPath);
-      console.log('Modelo Policy Gradient salvo no IndexedDB');
+      await model.save(this.actorPath);
+      console.log('Actor model salvo no IndexedDB');
     } catch (error) {
-      console.error('Erro ao salvar modelo:', error);
+      console.error('Erro ao salvar actor:', error);
     }
   }
 
-  async loadModel() {
+  async loadActor() {
     try {
-      const model = await tf.loadLayersModel(this.modelPath);
-      console.log('Modelo Policy Gradient carregado do IndexedDB');
+      const model = await tf.loadLayersModel(this.actorPath);
+      console.log('Actor model carregado do IndexedDB');
       return model;
     } catch (error) {
-      console.log('Nenhum modelo Policy Gradient encontrado');
+      console.log('Nenhum actor model encontrado');
       return null;
     }
   }
 
-  async deleteModel() {
+  async saveCritic(model) {
     try {
-      await tf.io.removeModel(this.modelPath);
+      await model.save(this.criticPath);
+      console.log('Critic model salvo no IndexedDB');
+    } catch (error) {
+      console.error('Erro ao salvar critic:', error);
+    }
+  }
+
+  async loadCritic() {
+    try {
+      const model = await tf.loadLayersModel(this.criticPath);
+      console.log('Critic model carregado do IndexedDB');
+      return model;
+    } catch (error) {
+      console.log('Nenhum critic model encontrado');
+      return null;
+    }
+  }
+
+  async deleteActor() {
+    try {
+      await tf.io.removeModel(this.actorPath);
     } catch (error) {
       // removeModel throws when there is nothing to remove.
-      console.warn('Modelo Policy Gradient inexistente ou já removido');
+      console.warn('Actor model inexistente ou já removido');
+    }
+  }
+
+  async deleteCritic() {
+    try {
+      await tf.io.removeModel(this.criticPath);
+    } catch (error) {
+      console.warn('Critic model inexistente ou já removido');
     }
   }
 
@@ -141,7 +170,8 @@ export class PersistenceManager {
   }
 
   async clearAll() {
-    await this.deleteModel();
+    await this.deleteActor();
+    await this.deleteCritic();
 
     try {
       await this.deleteGameData('metadata');
@@ -149,6 +179,6 @@ export class PersistenceManager {
       console.warn('Não foi possível remover metadata:', error);
     }
 
-    console.log('Memória do Policy Gradient resetada');
+    console.log('Memória do Actor-Critic resetada');
   }
 }

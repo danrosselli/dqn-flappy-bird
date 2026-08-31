@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
 	ACTIONS, ACTION_FLAP, ACTION_IDLE,
-	PolicyGradientAgent, resetBrain
+	ActorCriticAgent, resetBrain
 } from '../../rl/policyGradient.js';
 import { recordEpisode } from '../../rl/episodeRecorder.js';
 
@@ -13,7 +13,9 @@ export class Game extends Phaser.Scene {
 		this.highScore = 0;
 		this.lastState = null;
 		this.lastAction = null;
-		this.agent = new PolicyGradientAgent();
+		this.lastLogProb = null;
+		this.lastValue = null;
+		this.agent = new ActorCriticAgent();
 	}
 
 	preload() {
@@ -43,6 +45,8 @@ export class Game extends Phaser.Scene {
 		this.score = 0;
 		this.lastState = null;
 		this.lastAction = null;
+		this.lastLogProb = null;
+		this.lastValue = null;
 		this.agent.resetEpisode();
 		this.zones = [];
 		this.bonusReward = 0;
@@ -94,7 +98,7 @@ export class Game extends Phaser.Scene {
 			this.scale.width - 20,  // Mesmo X do texto (alinhado à direita)
 			20,                     // Mesmo Y do topo do texto
 			200,                    // Largura fixa (ajuste se precisar mais/menos)
-			380,                    // Altura aproximada (cobre todo o texto)
+			420,                    // Altura aproximada (cobre todo o texto)
 			0x000000,               // Cor preta
 			0.2                     // Alpha 0.6 = semi-transparente
 		).setOrigin(1, 0);          // Origem no canto superior direito
@@ -199,7 +203,7 @@ export class Game extends Phaser.Scene {
 		// Penalidade leve por velocidade vertical extrema (evita loops infinitos de flap)
 		const velPenalty = Math.abs(velY) > 700 ? -0.05 : 0;
 
-		// Custo por flap: sinal dependente da ação pro REINFORCE aprender a não espamar
+		// Custo por flap: penalidade para evitar espamar flap
 		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.1 : 0;
 
 		// Recompensa de alinhamento com o gap (só se houver pipe próximo)
@@ -224,12 +228,14 @@ export class Game extends Phaser.Scene {
 			this.proximityReward = 0;
 		}
 
-		// 3. Armazenar a experiência na trajetória.
-		// REINFORCE não usa replay buffer: a trajetória atual vive
-		// somente até o final deste episódio.
+		// 3. Online Actor-Critic update (one-step TD).
+		//    No trajectory buffer — O(1) memory per episode.
 		if (this.lastState !== null && this.lastAction !== null) {
 			const reward = this.proximityReward + velPenalty + flapPenalty + this.bonusReward;
-			this.agent.recordStep(this.lastState, this.lastAction, reward);
+			this.agent.update(
+				this.lastState, this.lastAction, this.lastLogProb,
+				this.lastValue, reward, currentState, false
+			);
 		}
 		this.bonusReward = 0;
 
@@ -247,6 +253,8 @@ export class Game extends Phaser.Scene {
 		// 6. Armazenar para Próximo Frame
 		this.lastState = currentState;
 		this.lastAction = action;
+		this.lastLogProb = policyDecision.logProb;
+		this.lastValue = policyDecision.value;
 
 		// 7. Física e Limpeza
 		if (this.bird.angle < 20) {
@@ -288,8 +296,9 @@ export class Game extends Phaser.Scene {
 			`Prox: ${this.proximityReward.toFixed(2)}\n` +
 			`P-Idle: ${(policy[ACTION_IDLE] * 100).toFixed(1)}%\n` +
 			`P-Flap: ${(policy[ACTION_FLAP] * 100).toFixed(1)}%\n` +
-			`Steps: ${this.agent.trajectory.length}\n` +
-			`Loss: ${this.agent.lastTrainingLoss === null ? '-' : this.agent.lastTrainingLoss.toFixed(4)}\n` +
+			`V(s): ${this.lastValue != null ? this.lastValue.toFixed(2) : '-'}\n` +
+			`A-Loss: ${this.agent.lastTrainingLoss === null ? '-' : this.agent.lastTrainingLoss.toFixed(4)}\n` +
+			`C-Loss: ${this.agent.lastCriticLoss === null ? '-' : this.agent.lastCriticLoss.toFixed(4)}\n` +
 			`Action: ${actionStr}`
 		);
 
@@ -406,12 +415,12 @@ export class Game extends Phaser.Scene {
 
 		const deathReward = -20;
 		if (this.lastState !== null && this.lastAction !== null) {
-			// A última ação recebe o reward terminal.
-			this.agent.recordStep(this.lastState, this.lastAction, deathReward);
+			// Terminal update: done=true forces V(s') = 0 in the advantage calculation.
+			this.agent.update(
+				this.lastState, this.lastAction, this.lastLogProb,
+				this.lastValue, deathReward, this.lastState, true
+			);
 		}
-
-		// REINFORCE faz o update somente agora, usando toda a trajetória.
-		await this.agent.train();
 
 		this.highScore = Math.max(this.highScore, this.score);
 		recordEpisode(this.generation, this.score);

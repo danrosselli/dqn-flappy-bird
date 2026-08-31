@@ -1,12 +1,19 @@
 /* ============================================================
- * POLICY GRADIENT (REINFORCE) — FLAPPY BIRD
+ * ACTOR-CRITIC (Online TD) — FLAPPY BIRD
  * ------------------------------------------------------------
  * The Phaser game is the training environment itself.
  *
- * There is no replay buffer and no target network.
- * A complete episode is collected as a trajectory and, when the
- * bird dies, one policy-gradient update is performed with all
- * state/action/reward steps from that episode.
+ * Two separate networks:
+ *   - Actor:  outputs action probabilities (softmax)
+ *   - Critic: estimates state value V(s) (linear output)
+ *
+ * Updates happen online — one gradient step per frame.
+ * No trajectory buffer. Memory usage is O(1) regardless of
+ * episode length, solving the memory issue of vanilla REINFORCE.
+ *
+ * Advantage: A = r + γ * V(s') - V(s)  (one-step TD error)
+ * Actor loss:  -log π(a|s) * A
+ * Critic loss: A²
  * ============================================================ */
 
 import * as tf from '@tensorflow/tfjs';
@@ -19,21 +26,28 @@ export const STATE_SIZE = 8;
 export const ACTION_SIZE = 2;
 
 export const gamma = 0.99;
-export const LEARNING_RATE = 0.003;
+export const LEARNING_RATE = 0.001;
+export const CRITIC_LEARNING_RATE = 0.002;
 
 const POLICY_EPSILON = 1e-7;
 
-export class PolicyGradientAgent {
+export class ActorCriticAgent {
   constructor() {
-    this.model = this.createModel();
+    this.actor = this.createActor();
+    this.critic = this.createCritic();
     this.persistence = new PersistenceManager();
-    this.trajectory = [];
     this.trainingInProgress = false;
     this.lastTrainingLoss = null;
-    this.lastEpisodeSteps = 0;
+    this.lastCriticLoss = null;
+
+    // Previous step data for online update (replaces trajectory buffer)
+    this.prevState = null;
+    this.prevAction = null;
+    this.prevValue = null;
+    this.prevLogProb = null;
   }
 
-  createModel() {
+  createActor() {
     const model = tf.sequential();
 
     model.add(tf.layers.dense({
@@ -47,14 +61,11 @@ export class PolicyGradientAgent {
       activation: 'relu'
     }));
 
-    // Policy: each output is the probability of an action.
     model.add(tf.layers.dense({
       units: ACTION_SIZE,
       activation: 'softmax'
     }));
 
-    // compile is kept so TensorFlow.js treats the model as trainable
-    // and so the optimizer is persisted/recreated consistently.
     model.compile({
       optimizer: tf.train.adam(LEARNING_RATE),
       loss: 'categoricalCrossentropy'
@@ -63,117 +74,130 @@ export class PolicyGradientAgent {
     return model;
   }
 
-  resetEpisode() {
-    this.trajectory = [];
-    this.lastEpisodeSteps = 0;
+  createCritic() {
+    const model = tf.sequential();
+
+    model.add(tf.layers.dense({
+      units: 64,
+      activation: 'relu',
+      inputShape: [STATE_SIZE]
+    }));
+
+    model.add(tf.layers.dense({
+      units: 64,
+      activation: 'relu'
+    }));
+
+    model.add(tf.layers.dense({
+      units: 1,
+      activation: 'linear'
+    }));
+
+    model.compile({
+      optimizer: tf.train.adam(CRITIC_LEARNING_RATE),
+      loss: 'meanSquaredError'
+    });
+
+    return model;
   }
 
-  recordStep(state, action, reward) {
-    this.trajectory.push({
-      state: [...state],
-      action,
-      reward
-    });
+  resetEpisode() {
+    this.prevState = null;
+    this.prevAction = null;
+    this.prevValue = null;
+    this.prevLogProb = null;
   }
 
   /**
-   * Samples an action from the policy distribution.
-   *
-   * Example:
-   *   [0.30, 0.70] -> FLAP with 70% probability.
+   * Samples an action from the actor and estimates V(s) from the critic.
+   * Returns action, log probability, and value estimate.
    */
   chooseAction(state) {
     return tf.tidy(() => {
       const stateTensor = tf.tensor2d([state], [1, STATE_SIZE]);
-      const probabilities = this.model.predict(stateTensor);
+
+      // Actor forward pass
+      const probabilities = this.actor.predict(stateTensor);
       const probs = probabilities.dataSync();
 
+      // Sample action
       const random = Math.random();
       const action = random < probs[ACTION_FLAP]
         ? ACTION_FLAP
         : ACTION_IDLE;
 
+      const logProb = Math.log(probs[action] + POLICY_EPSILON);
+
+      // Critic forward pass
+      const valueTensor = this.critic.predict(stateTensor);
+      const value = valueTensor.dataSync()[0];
+
       return {
         action,
         idleProbability: probs[ACTION_IDLE],
-        flapProbability: probs[ACTION_FLAP]
+        flapProbability: probs[ACTION_FLAP],
+        logProb,
+        value
       };
     });
   }
 
   /**
-   * REINFORCE:
-   *   1. Calculate discounted returns G_t for the complete trajectory.
-   *   2. Normalize returns for a more stable update.
-   *   3. Minimize -G_t * log(pi(a_t | s_t)).
-   *   4. One backpropagation/update is performed for the episode.
+   * Online Actor-Critic update (one-step TD).
+   *
+   * Called every frame after the action is executed and the reward
+   * is observed, along with the next state.
+   *
+   * 1. Compute advantage: A = r + γ * V(s') - V(s)
+   * 2. Update critic:  minimize (target - V(s))²
+   * 3. Update actor:   minimize -log π(a|s) * A
    */
-  async train() {
-    if (this.trainingInProgress || this.trajectory.length === 0) {
+  async update(prevState, prevAction, prevLogProb, prevValue, reward, nextState, done) {
+    if (this.trainingInProgress) {
       return null;
     }
 
     this.trainingInProgress = true;
 
-    const trajectory = this.trajectory;
-    this.lastEpisodeSteps = trajectory.length;
-
-    const states = trajectory.map(step => step.state);
-    const actions = trajectory.map(step => step.action);
-    const rewards = trajectory.map(step => step.reward);
-
-    // Once train starts, the old trajectory is no longer needed.
-    // Keep local references for this update and clear the agent's buffer.
-    this.trajectory = [];
-
     try {
-      const returns = new Array(rewards.length);
-      let runningReturn = 0;
+      const stateTensor = tf.tensor2d([prevState], [1, STATE_SIZE]);
+      const nextStateTensor = tf.tensor2d([nextState], [1, STATE_SIZE]);
 
-      for (let i = rewards.length - 1; i >= 0; i--) {
-        runningReturn = rewards[i] + gamma * runningReturn;
-        returns[i] = runningReturn;
-      }
+      // V(s') for advantage calculation
+      const valueCurrent = this.critic.predict(nextStateTensor).dataSync()[0];
+      const target = reward + (done ? 0 : gamma * valueCurrent);
+      const advantage = target - prevValue;
 
-      const stateTensor = tf.tensor2d(states, [states.length, STATE_SIZE]);
-      const actionTensor = tf.tensor1d(actions, 'int32');
-      const returnTensor = tf.tensor1d(returns);
+      // --- Critic update: minimize (target - V(s))² ---
+      // minimize() scopes gradients to only this model's variables.
+      const criticLoss = this.critic.optimizer.minimize(() => {
+        const v = this.critic.predict(stateTensor);
+        return tf.losses.meanSquaredError(
+          tf.tensor2d([[target]], [1, 1]), v
+        ).mean();
+      }, true);
 
-      const advantages = tf.tidy(() => {
-        const mean = returnTensor.mean();
-        const std = returnTensor.sub(mean).square().mean().sqrt().add(1e-8);
-        return returnTensor.sub(mean).div(std);
-      });
+      // --- Actor update: minimize -log π(a|s) * advantage ---
+      const actorLoss = this.actor.optimizer.minimize(() => {
+        const probs = this.actor.predict(stateTensor);
+        const safeProbs = probs.add(POLICY_EPSILON);
+        const logProbs = safeProbs.log();
+        const actionMask = tf.oneHot(tf.tensor1d([prevAction], 'int32'), ACTION_SIZE);
+        const selectedLogProb = logProbs.mul(actionMask).sum(1);
+        return selectedLogProb.mul(-advantage).mean();
+      }, true);
 
-      const { value, grads } = tf.variableGrads(() => {
-        const probabilities = this.model.apply(stateTensor);
-        const safeProbabilities = probabilities.add(POLICY_EPSILON);
-        const logProbabilities = safeProbabilities.log();
-        const actionMask = tf.oneHot(actionTensor, ACTION_SIZE);
-        const selectedLogProbabilities = logProbabilities.mul(actionMask).sum(1);
+      this.lastTrainingLoss = actorLoss.dataSync()[0];
+      this.lastCriticLoss = criticLoss.dataSync()[0];
 
-        // REINFORCE loss: - G_t * log(pi(a_t | s_t))
-        return selectedLogProbabilities
-          .mul(advantages)
-          .neg()
-          .mean();
-      });
-
-      this.model.optimizer.applyGradients(grads);
-
-      this.lastTrainingLoss = value.dataSync()[0];
-
-      value.dispose();
-      Object.values(grads).forEach(gradient => gradient.dispose());
-      advantages.dispose();
-      returnTensor.dispose();
-      actionTensor.dispose();
+      actorLoss.dispose();
+      criticLoss.dispose();
       stateTensor.dispose();
+      nextStateTensor.dispose();
 
       return this.lastTrainingLoss;
     } catch (error) {
-      console.error('Policy Gradient training error:', error);
-      // Do not silently retain a trajectory that has already been consumed.
+      console.error('Actor-Critic update error:', error);
       return null;
     } finally {
       this.trainingInProgress = false;
@@ -183,7 +207,7 @@ export class PolicyGradientAgent {
   getPolicy(state) {
     return tf.tidy(() => {
       const stateTensor = tf.tensor2d([state], [1, STATE_SIZE]);
-      const probabilities = this.model.predict(stateTensor);
+      const probabilities = this.actor.predict(stateTensor);
       const p = probabilities.dataSync();
 
       return {
@@ -193,50 +217,68 @@ export class PolicyGradientAgent {
     });
   }
 
+  getValue(state) {
+    return tf.tidy(() => {
+      const stateTensor = tf.tensor2d([state], [1, STATE_SIZE]);
+      const v = this.critic.predict(stateTensor);
+      return v.dataSync()[0];
+    });
+  }
+
   async saveBrain(generation, highScore = 0) {
-    await this.persistence.saveModel(this.model);
+    await this.persistence.saveActor(this.actor);
+    await this.persistence.saveCritic(this.critic);
     await this.persistence.saveMetadata({
-      algorithm: 'reinforce',
+      algorithm: 'actor-critic',
       generation,
       highScore
     });
-    console.log('Policy Gradient salvo! Gen:', generation);
+    console.log('Actor-Critic salvo! Gen:', generation);
   }
 
   async loadBrain() {
     try {
       const metadata = await this.persistence.loadMetadata();
 
-      // Never load the previous DQN into this policy-gradient agent.
-      if (metadata && metadata.algorithm && metadata.algorithm !== 'reinforce') {
-        console.log('Memória antiga pertence a outro algoritmo. Iniciando Policy Gradient.');
+      if (metadata && metadata.algorithm && metadata.algorithm !== 'actor-critic') {
+        console.log('Memória antiga pertence a outro algoritmo. Iniciando Actor-Critic.');
         await this.persistence.clearAll();
         return { success: false, generation: 1 };
       }
 
-      const model = await this.persistence.loadModel();
+      const actor = await this.persistence.loadActor();
+      const critic = await this.persistence.loadCritic();
 
-      if (model) {
-        const modelInputSize = model.inputs[0].shape[1];
-        const outputSize = model.outputs[0].shape[1];
+      if (actor && critic) {
+        const actorInputSize = actor.inputs[0].shape[1];
+        const actorOutputSize = actor.outputs[0].shape[1];
+        const criticInputSize = critic.inputs[0].shape[1];
+        const criticOutputSize = critic.outputs[0].shape[1];
 
-        if (modelInputSize !== STATE_SIZE || outputSize !== ACTION_SIZE) {
-          console.log('Modelo salvo incompatível com Policy Gradient. Resetando.');
+        if (actorInputSize !== STATE_SIZE || actorOutputSize !== ACTION_SIZE ||
+          criticInputSize !== STATE_SIZE || criticOutputSize !== 1) {
+          console.log('Modelos salvos incompatíveis com Actor-Critic. Resetando.');
           await this.persistence.clearAll();
           return { success: false, generation: 1 };
         }
 
-        this.model = model;
-        this.model.compile({
+        this.actor = actor;
+        this.actor.compile({
           optimizer: tf.train.adam(LEARNING_RATE),
           loss: 'categoricalCrossentropy'
+        });
+
+        this.critic = critic;
+        this.critic.compile({
+          optimizer: tf.train.adam(CRITIC_LEARNING_RATE),
+          loss: 'meanSquaredError'
         });
 
         if (metadata) {
           const generation = metadata.generation ?? 1;
           const highScore = metadata.highScore ?? 0;
           console.log(
-            'Policy Gradient carregado. Gen:',
+            'Actor-Critic carregado. Gen:',
             generation,
             'HighScore:',
             highScore
@@ -247,7 +289,7 @@ export class PolicyGradientAgent {
         return { success: true, generation: 1, highScore: 0 };
       }
     } catch (error) {
-      console.log('Nenhum estado de Policy Gradient salvo encontrado:', error.message);
+      console.log('Nenhum estado de Actor-Critic salvo encontrado:', error.message);
     }
 
     return { success: false, generation: 1 };
@@ -257,5 +299,5 @@ export class PolicyGradientAgent {
 export async function resetBrain() {
   const pm = new PersistenceManager();
   await pm.clearAll();
-  console.log('Memória do Policy Gradient resetada');
+  console.log('Memória do Actor-Critic resetada');
 }
