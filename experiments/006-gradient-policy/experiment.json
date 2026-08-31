@@ -1,0 +1,48 @@
+{
+  "name": "006-gradient-policy",
+  "description": "Gradient Policy",
+  "stateSize": 8,
+  "stateFeatures": [
+    {"name": "dx", "description": "Horizontal distance to the current pipe", "normalization": "(dx / 529) - 1, range [-1, +1]"},
+    {"name": "dy", "description": "Vertical distance to the center of the current pipe gap", "normalization": "clamp(dy / 400, -1, 1)"},
+    {"name": "velY", "description": "Vertical velocity of the bird", "normalization": "clamp(velY / 1000, -1, 1)"},
+    {"name": "gap", "description": "Height of the current pipe gap", "normalization": "((gap - 200) / 105) - 1, range [-1, +1]"},
+    {"name": "dxNext", "description": "Horizontal distance to the next pipe", "normalization": "(dx / 529) - 1, range [-1, +1]"},
+    {"name": "dyNext", "description": "Vertical distance to the center of the next pipe gap", "normalization": "clamp(dy / 400, -1, 1)"},
+    {"name": "gapNext", "description": "Height of the next pipe gap", "normalization": "((gap - 200) / 105) - 1, range [-1, +1]"},
+    {"name": "speed", "description": "Current pipe speed", "normalization": "((speed - 200) / 100) - 1, range [-1, +1]"}
+  ],
+  "terminalState": [0, 0, 0, 0, 0, 0, 0, 0],
+  "network": {
+    "architecture": "sequential",
+    "layers": [
+      {"type": "dense", "units": 64, "activation": "relu", "inputShape": 8},
+      {"type": "dense", "units": 64, "activation": "relu"},
+      {"type": "dense", "units": 2, "activation": "linear"}
+    ],
+    "optimizer": "adam",
+    "optimizerParams": {"learningRate": 0.001},
+    "loss": "meanSquaredError",
+    "targetNetwork": true
+  },
+  "buffer": {
+    "type": "hybrid-reservoir",
+    "recentSize": 10000,
+    "reservoirSize": 40000,
+    "legacySize": 50000,
+    "totalCapacity": 100000,
+    "discardPolicy": "Discards states where no pipe is visible (dx >= 1)",
+    "availableStrategies": [
+      "sampleRandomBasic",
+      "sampleLastPrioritizedAndRandom",
+      "sampleRewardPrioritized",
+      "sampleHybridWithRecentSeq",
+      "sampleHybridWithCrashFocus",
+      "sampleHybrid"
+    ]
+  },
+  "exploration": {
+    "strategy": "epsilon-greedy",
+    "actionBias": "95% idle, 5% flap during random exploration"
+  }
+}
