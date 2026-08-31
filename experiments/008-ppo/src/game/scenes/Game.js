@@ -186,7 +186,7 @@ export class Game extends Phaser.Scene {
 
 		// 2. Calcular Recompensa
 		const velPenalty = Math.abs(velY) > 700 ? -0.05 : 0;
-		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.05 : 0;
+		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.1 : 0;
 
 		if (closestPipe) {
 			const gap = closestPipe.height;
