@@ -31,6 +31,22 @@ export const CRITIC_LEARNING_RATE = 0.002;
 
 const POLICY_EPSILON = 1e-7;
 
+// Entropy bonus: keeps the policy from collapsing to a deterministic
+// action too early. Without this, softmax probabilities can saturate
+// near 0/1 and gradients vanish, making the collapse irreversible.
+const ENTROPY_COEF = 0.01;
+
+// Clamps the TD advantage before it drives the actor's gradient step.
+// A single large advantage (e.g. from the -20 death reward) can
+// otherwise push probabilities to the extremes in one update.
+const ADVANTAGE_CLIP = 5;
+
+// Huber loss transition point for the critic. Below this TD error the
+// loss is quadratic (like MSE); above it, it's linear, so a single
+// outlier transition (e.g. the death frame) doesn't produce an
+// exploding gradient that destabilizes V(s) for other states.
+const HUBER_DELTA = 5;
+
 export class ActorCriticAgent {
   constructor() {
     this.actor = this.createActor();
@@ -166,25 +182,39 @@ export class ActorCriticAgent {
       // V(s') for advantage calculation
       const valueCurrent = this.critic.predict(nextStateTensor).dataSync()[0];
       const target = reward + (done ? 0 : gamma * valueCurrent);
-      const advantage = target - prevValue;
+      let advantage = target - prevValue;
+      advantage = Math.max(-ADVANTAGE_CLIP, Math.min(ADVANTAGE_CLIP, advantage));
 
-      // --- Critic update: minimize (target - V(s))² ---
+      // --- Critic update: minimize Huber(target, V(s)) ---
       // minimize() scopes gradients to only this model's variables.
+      // Huber instead of raw MSE: quadratic for small TD errors,
+      // linear for large ones (like the death transition), so one
+      // outlier frame doesn't blow up the gradient step.
       const criticLoss = this.critic.optimizer.minimize(() => {
         const v = this.critic.predict(stateTensor);
-        return tf.losses.meanSquaredError(
-          tf.tensor2d([[target]], [1, 1]), v
-        ).mean();
+        const targetTensor = tf.tensor2d([[target]], [1, 1]);
+        const error = targetTensor.sub(v);
+        const absError = error.abs();
+        const quadratic = tf.minimum(absError, HUBER_DELTA);
+        const linear = absError.sub(quadratic);
+        return quadratic.square().mul(0.5).add(linear.mul(HUBER_DELTA)).mean();
       }, true);
 
-      // --- Actor update: minimize -log π(a|s) * advantage ---
+      // --- Actor update: minimize -log π(a|s) * advantage - entropyCoef * H(π) ---
+      // The entropy term H(π) = -Σ p·log(p) rewards keeping some spread
+      // across actions, so the policy doesn't lock onto one action forever.
       const actorLoss = this.actor.optimizer.minimize(() => {
         const probs = this.actor.predict(stateTensor);
         const safeProbs = probs.add(POLICY_EPSILON);
         const logProbs = safeProbs.log();
         const actionMask = tf.oneHot(tf.tensor1d([prevAction], 'int32'), ACTION_SIZE);
         const selectedLogProb = logProbs.mul(actionMask).sum(1);
-        return selectedLogProb.mul(-advantage).mean();
+
+        const entropy = safeProbs.mul(logProbs).sum(1).mul(-1);
+
+        return selectedLogProb.mul(-advantage)
+          .sub(entropy.mul(ENTROPY_COEF))
+          .mean();
       }, true);
 
       this.lastTrainingLoss = actorLoss.dataSync()[0];
@@ -256,7 +286,7 @@ export class ActorCriticAgent {
         const criticOutputSize = critic.outputs[0].shape[1];
 
         if (actorInputSize !== STATE_SIZE || actorOutputSize !== ACTION_SIZE ||
-          criticInputSize !== STATE_SIZE || criticOutputSize !== 1) {
+            criticInputSize !== STATE_SIZE || criticOutputSize !== 1) {
           console.log('Modelos salvos incompatíveis com Actor-Critic. Resetando.');
           await this.persistence.clearAll();
           return { success: false, generation: 1 };

@@ -84,7 +84,7 @@ export class Game extends Phaser.Scene {
 		});
 
 		// HUD Text (agora no lado direito)
-		this.hudText = this.add.text(this.scale.width - 40, 30, '', {
+		this.hudText = this.add.text(this.scale.width - 50, 30, '', {
 			fontSize: '18px',
 			fill: '#ff0',
 			stroke: '#000',
@@ -98,7 +98,7 @@ export class Game extends Phaser.Scene {
 			this.scale.width - 20,  // Mesmo X do texto (alinhado à direita)
 			20,                     // Mesmo Y do topo do texto
 			200,                    // Largura fixa (ajuste se precisar mais/menos)
-			420,                    // Altura aproximada (cobre todo o texto)
+			400,                    // Altura aproximada (cobre todo o texto)
 			0x000000,               // Cor preta
 			0.2                     // Alpha 0.6 = semi-transparente
 		).setOrigin(1, 0);          // Origem no canto superior direito
@@ -204,7 +204,7 @@ export class Game extends Phaser.Scene {
 		const velPenalty = Math.abs(velY) > 700 ? -0.05 : 0;
 
 		// Custo por flap: penalidade para evitar espamar flap
-		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.1 : 0;
+		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.05 : 0;
 
 		// Recompensa de alinhamento com o gap (só se houver pipe próximo)
 		if (closestPipe) {
