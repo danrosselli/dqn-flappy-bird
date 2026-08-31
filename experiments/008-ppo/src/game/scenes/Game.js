@@ -82,20 +82,21 @@ export class Game extends Phaser.Scene {
 			strokeThickness: 4,
 		});
 
-		this.hudText = this.add.text(this.scale.width - 50, 30, '', {
+		this.hudText = this.add.text(this.scale.width, 30, '', {
 			fontSize: '18px',
 			fill: '#ff0',
 			stroke: '#000',
 			strokeThickness: 3,
-			align: 'left'
+			align: 'left',
+			fixedWidth: 220
 		}).setOrigin(1, 0);
 		this.hudText.setDepth(1000);
 
 		this.hudBackground = this.add.rectangle(
 			this.scale.width - 20,
 			20,
-			200,
-			460,
+			210,
+			440,
 			0x000000,
 			0.2
 		).setOrigin(1, 0);
