@@ -56,7 +56,7 @@ export class Game extends Phaser.Scene {
 		this.agent.resetEpisode();
 		this.zones = [];
 		this.bonusReward = 0;
-		this.proximityReward = 0;
+		this.progressReward = 0;
 
 		const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'bg');
 		bg.setDisplaySize(this.scale.width, this.scale.height);
@@ -227,7 +227,7 @@ export class Game extends Phaser.Scene {
 			this.lastTargetPipe = null;
 		}
 
-		this.proximityReward = progressReward;
+		this.progressReward = progressReward;
 
 		// 3. Evaluate the CURRENT state before any possible PPO update.
 		// This value is the correct bootstrap V(s_t) for the previous transition.
@@ -243,7 +243,7 @@ export class Game extends Phaser.Scene {
 		// value if this transition becomes the end of a rollout.
 
 		if (this.lastState !== null && this.lastAction !== null) {
-			const reward = this.proximityReward + flapPenalty + this.bonusReward;
+			const reward = this.progressReward + flapPenalty + this.bonusReward;
 
 			this.agent.collectStep(
 				this.lastState,
@@ -324,7 +324,7 @@ export class Game extends Phaser.Scene {
 			`DXNext: ${Math.floor(dxNext)}\n` +
 			`DYNext: ${Math.floor(dyNext)}\n` +
 			`GapNext: ${Math.floor(gapNext)}\n` +
-			`Progress: ${this.proximityReward.toFixed(3)}\n` +
+			`Progress: ${this.progressReward.toFixed(3)}\n` +
 			`P-Idle: ${(policy[ACTION_IDLE] * 100).toFixed(1)}%\n` +
 			`P-Flap: ${(policy[ACTION_FLAP] * 100).toFixed(1)}%\n` +
 			`V(s): ${this.lastValue != null ? this.lastValue.toFixed(2) : '-'}\n` +
