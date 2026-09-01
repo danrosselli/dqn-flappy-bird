@@ -183,6 +183,10 @@ export class PPOAgent {
       const { states, actions, advantages, returns, oldLogProbs } = this.buffer.get();
       const batchSize = this.buffer.size;
 
+      // Tensors are copies, so the buffer can be freed immediately while the
+      // training runs in time slices across frames.
+      this.buffer.clear();
+
       // Normalize advantages (standard PPO trick)
       const advMean = advantages.mean();
       const advStd = advantages.sub(advMean).square().mean().add(1e-8).sqrt();
@@ -291,9 +295,6 @@ export class PPOAgent {
       normalizedAdvantages.dispose();
       returns.dispose();
       oldLogProbs.dispose();
-
-      // Clear buffer for next rollout
-      this.buffer.clear();
 
       return this.lastActorLoss;
     } catch (error) {
