@@ -15,6 +15,10 @@ export class Game extends Phaser.Scene {
 		this.lastAction = null;
 		this.lastLogProb = null;
 		this.lastValue = null;
+
+		this.lastTargetPipe = null;
+		this.lastDistanceToTarget = null;
+
 		this.agent = new PPOAgent();
 	}
 
@@ -46,6 +50,9 @@ export class Game extends Phaser.Scene {
 		this.lastAction = null;
 		this.lastLogProb = null;
 		this.lastValue = null;
+		this.lastTargetPipe = null;
+		this.lastDistanceToTarget = null;
+
 		this.agent.resetEpisode();
 		this.zones = [];
 		this.bonusReward = 0;
@@ -69,6 +76,7 @@ export class Game extends Phaser.Scene {
 				repeat: -1
 			});
 		}
+
 		this.bird.play('fly');
 		this.bird.setDisplaySize(68, 48);
 		this.bird.setBodySize(this.bird.width - 10, this.bird.height - 10);
@@ -90,6 +98,7 @@ export class Game extends Phaser.Scene {
 			align: 'left',
 			fixedWidth: 220
 		}).setOrigin(1, 0);
+
 		this.hudText.setDepth(1000);
 
 		this.hudBackground = this.add.rectangle(
@@ -115,6 +124,7 @@ export class Game extends Phaser.Scene {
 			'cursor: pointer; display: flex; align-items: center; justify-content: center;',
 			'RESET'
 		).setOrigin(0.5, 0.5);
+
 		this.resetBtn.setDepth(1001);
 		this.resetBtn.addListener('click');
 		this.resetBtn.on('click', () => this.handleReset());
@@ -134,7 +144,9 @@ export class Game extends Phaser.Scene {
 		if (this.gameOver || !this.ready) return;
 
 		const pipeSpeed = Math.min(200 + this.score * 0.4, 400);
+
 		this.pipes.setVelocityX(-pipeSpeed);
+
 		this.zones.forEach(zone => {
 			if (zone.body) {
 				zone.body.setVelocityX(-pipeSpeed);
@@ -142,7 +154,9 @@ export class Game extends Phaser.Scene {
 		});
 
 		// 1. Observar Estado
+
 		const closestPipe = this.getClosestPipe();
+
 		const pipesAhead = this.zones.filter(zone => zone.active && zone.x > this.bird.x)
 			.sort((a, b) => a.x - b.x);
 
@@ -151,15 +165,19 @@ export class Game extends Phaser.Scene {
 
 		if (pipesAhead.length > 0) {
 			const current = pipesAhead[0];
+
 			dx = current.x - this.bird.x;
 			dx = Math.max(0, dx);
+
 			dy = this.bird.y - current.body.center.y;
 			gapHeight = current.height;
 
 			if (pipesAhead.length > 1) {
 				const next = pipesAhead[1];
+
 				dxNext = next.x - this.bird.x;
 				dxNext = Math.max(0, dxNext);
+
 				dyNext = this.bird.y - next.body.center.y;
 				gapNext = next.height;
 			}
@@ -186,33 +204,47 @@ export class Game extends Phaser.Scene {
 		];
 
 		// 2. Calcular Recompensa
-		const velPenalty = Math.abs(velY) > 700 ? -0.05 : 0;
-		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.1 : 0;
+
+		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.02 : 0;
+
+		let progressReward = 0;
 
 		if (closestPipe) {
-			const gap = closestPipe.height;
-			const absDy = Math.abs(dy);
-			const maxConsideredDy = this.scale.height / 2;
-			const normalizedDy = absDy / maxConsideredDy;
-			const sigma = 0.5;
-			const gaussian = Math.exp(-Math.pow(normalizedDy, 2) / (2 * sigma * sigma));
-			this.proximityReward = gaussian;
+			const currentDistance = Math.abs(this.bird.y - closestPipe.body.center.y);
+
+			if (this.lastTargetPipe === closestPipe && this.lastDistanceToTarget !== null) {
+				progressReward = Phaser.Math.Clamp(
+					(this.lastDistanceToTarget - currentDistance) * 0.02,
+					-0.05,
+					0.05
+				);
+			}
+
+			this.lastDistanceToTarget = currentDistance;
+			this.lastTargetPipe = closestPipe;
 		} else {
-			this.proximityReward = 0;
+			this.lastDistanceToTarget = null;
+			this.lastTargetPipe = null;
 		}
+
+		this.proximityReward = progressReward;
 
 		// 3. Evaluate the CURRENT state before any possible PPO update.
 		// This value is the correct bootstrap V(s_t) for the previous transition.
+
 		const currentValue = this.agent.getValue(currentState);
 
 		// 4. PPO: close the previous transition.
 		//
-		// The transition stored on the previous frame is: 
-		//   (lastState, lastAction, reward, currentState)
+		// The transition stored on the previous frame is:
+		// (lastState, lastAction, reward, currentState)
+		//
 		// Therefore currentValue = V(currentState) is the correct bootstrap
 		// value if this transition becomes the end of a rollout.
+
 		if (this.lastState !== null && this.lastAction !== null) {
-			const reward = this.proximityReward + velPenalty + flapPenalty + this.bonusReward;
+			const reward = this.proximityReward + flapPenalty + this.bonusReward;
+
 			this.agent.collectStep(
 				this.lastState,
 				this.lastAction,
@@ -223,38 +255,48 @@ export class Game extends Phaser.Scene {
 				currentValue
 			);
 		}
+
 		this.bonusReward = 0;
 
 		// 5. Choose the next action AFTER a possible PPO update.
+
 		const policyDecision = this.agent.chooseAction(currentState);
 		const action = policyDecision.action;
 
 		// 6. Executar Ação
+
 		let actionStr = "IDLE";
+
 		if (action === ACTION_FLAP) {
 			actionStr = "FLAP";
 			this.flap();
 		}
 
 		// 7. Armazenar para Próximo Frame
+
 		this.lastState = currentState;
 		this.lastAction = action;
 		this.lastLogProb = policyDecision.logProb;
 		this.lastValue = policyDecision.value;
 
 		// 8. Física e Limpeza
+
 		if (this.bird.angle < 20) {
 			this.bird.angle += 1;
 		}
 
 		this.pipes.getChildren().forEach((pipe) => {
 			const w = (pipe.displayWidth !== undefined) ? pipe.displayWidth : (pipe.width || 0);
-			if (pipe.x + w < 0) pipe.destroy();
+
+			if (pipe.x + w < 0) {
+				pipe.destroy();
+			}
 		});
 
 		if (this.zones) {
 			for (let i = this.zones.length - 1; i >= 0; i--) {
 				const zone = this.zones[i];
+
 				if (zone.x + zone.width < 0) {
 					zone.destroy();
 					this.zones.splice(i, 1);
@@ -267,8 +309,10 @@ export class Game extends Phaser.Scene {
 		}
 
 		// 9. Atualizar HUD
+
 		const policy = this.agent.getPolicy(currentState);
 		const buffer = this.agent.buffer;
+
 		this.hudText.setText(
 			`Gen: ${this.generation}\n` +
 			`High: ${this.highScore}\n` +
@@ -280,7 +324,7 @@ export class Game extends Phaser.Scene {
 			`DXNext: ${Math.floor(dxNext)}\n` +
 			`DYNext: ${Math.floor(dyNext)}\n` +
 			`GapNext: ${Math.floor(gapNext)}\n` +
-			`Prox: ${this.proximityReward.toFixed(2)}\n` +
+			`Progress: ${this.proximityReward.toFixed(3)}\n` +
 			`P-Idle: ${(policy[ACTION_IDLE] * 100).toFixed(1)}%\n` +
 			`P-Flap: ${(policy[ACTION_FLAP] * 100).toFixed(1)}%\n` +
 			`V(s): ${this.lastValue != null ? this.lastValue.toFixed(2) : '-'}\n` +
@@ -290,18 +334,20 @@ export class Game extends Phaser.Scene {
 			`Clip%: ${this.agent.lastClipFraction === null ? '-' : (this.agent.lastClipFraction * 100).toFixed(1)}%\n` +
 			`Action: ${actionStr}`
 		);
-
 	}
 
 	flap() {
 		if (this.gameOver) return;
+
 		this.bird.setVelocityY(-350);
 		this.bird.angle = -20;
 	}
 
 	async handleReset() {
 		const confirmed = confirm('Apagar toda a memória e os dados gravados no navegador? Esta ação não pode ser desfeita.');
+
 		if (!confirmed) return;
+
 		await resetBrain();
 		window.location.reload();
 	}
@@ -315,6 +361,7 @@ export class Game extends Phaser.Scene {
 		this.zones.forEach(zone => {
 			if (zone.active && zone.x > this.bird.x) {
 				const dist = zone.x - this.bird.x;
+
 				if (dist < minDist) {
 					minDist = dist;
 					closest = zone;
@@ -343,8 +390,15 @@ export class Game extends Phaser.Scene {
 		const topMouthHeight = top.displayHeight;
 		const topMouthTopY = topMouthBottomY - topMouthHeight;
 		const topBodyHeight = Math.max(0, Math.floor(topMouthTopY));
+
 		if (topBodyHeight > 0) {
-			const topBody = this.add.rectangle(x + top.displayWidth / 2, topMouthTopY / 2, top.displayWidth, topBodyHeight);
+			const topBody = this.add.rectangle(
+				x + top.displayWidth / 2,
+				topMouthTopY / 2,
+				top.displayWidth,
+				topBodyHeight
+			);
+
 			topBody.setOrigin(0.5, 0.5);
 			this.physics.add.existing(topBody);
 			topBody.body.setAllowGravity(false);
@@ -364,9 +418,17 @@ export class Game extends Phaser.Scene {
 		const bottomMouthHeight = bottom.displayHeight;
 		const startY = bottomMouthTopY + bottomMouthHeight;
 		const bottomBodyHeight = Math.max(0, this.scale.height - startY);
+
 		if (bottomBodyHeight > 0) {
 			const bottomBodyCenterY = startY + bottomBodyHeight / 2;
-			const bottomBody = this.add.rectangle(x + bottom.displayWidth / 2, bottomBodyCenterY, bottom.displayWidth, bottomBodyHeight);
+
+			const bottomBody = this.add.rectangle(
+				x + bottom.displayWidth / 2,
+				bottomBodyCenterY,
+				bottom.displayWidth,
+				bottomBodyHeight
+			);
+
 			bottomBody.setOrigin(0.5, 0.5);
 			this.physics.add.existing(bottomBody);
 			bottomBody.body.setAllowGravity(false);
@@ -377,6 +439,7 @@ export class Game extends Phaser.Scene {
 		}
 
 		const zone = this.add.zone(x + 104, centerY, 2, gap);
+
 		this.physics.world.enable(zone);
 		zone.body.setVelocityX(-200);
 		zone.body.allowGravity = false;
@@ -384,6 +447,7 @@ export class Game extends Phaser.Scene {
 		zone.active = true;
 
 		if (!this.zones) this.zones = [];
+
 		this.zones.push(zone);
 
 		this.physics.add.overlap(this.bird, zone, (bird, z) => {
@@ -398,22 +462,33 @@ export class Game extends Phaser.Scene {
 
 	async hitPipe() {
 		if (this.gameOver) return;
+
 		this.gameOver = true;
 
 		const deathReward = -20;
+
 		if (this.lastState !== null && this.lastAction !== null) {
 			// Terminal step: done=true, lastValue=0 forces V(s')=0
+
 			this.agent.buffer.add(
-				this.lastState, this.lastAction, deathReward,
-				this.lastValue, this.lastLogProb, true
+				this.lastState,
+				this.lastAction,
+				deathReward,
+				this.lastValue,
+				this.lastLogProb,
+				true
 			);
+
 			// Force PPO update with terminal value = 0
+
 			await this.agent.forceUpdate(0);
 		}
 
 		this.highScore = Math.max(this.highScore, this.score);
 		recordEpisode(this.generation, this.score);
+
 		this.generation++;
+
 		await this.agent.saveBrain(this.generation, this.highScore);
 
 		this.endGame();
@@ -421,33 +496,52 @@ export class Game extends Phaser.Scene {
 
 	endGame() {
 		if (this.pipeTimer) {
-			try { this.pipeTimer.remove(false); } catch (e) { }
+			try {
+				this.pipeTimer.remove(false);
+			} catch (e) { }
+
 			this.pipeTimer = null;
 		}
+
 		if (this.pipes) {
-			try { this.pipes.setVelocityX(0); } catch (e) { }
+			try {
+				this.pipes.setVelocityX(0);
+			} catch (e) { }
 		}
+
 		if (this.zones) {
 			this.zones.forEach(zone => {
 				if (zone.body) zone.body.setVelocityX(0);
 			});
 		}
+
 		if (this.bird && this.bird.body) {
 			try {
 				this.bird.setVelocity(0);
 				this.bird.body.setAllowGravity(false);
 			} catch (e) { }
 		}
-		try { this.physics.pause(); } catch (e) { }
-		try { this.anims.pauseAll(); } catch (e) { }
+
+		try {
+			this.physics.pause();
+		} catch (e) { }
+
+		try {
+			this.anims.pauseAll();
+		} catch (e) { }
 
 		this.add
-			.text(this.scale.width / 2, this.scale.height / 2 - 40, 'Game Over', {
-				fontSize: '64px',
-				fill: '#fff',
-				stroke: '#000',
-				strokeThickness: 6,
-			})
+			.text(
+				this.scale.width / 2,
+				this.scale.height / 2 - 40,
+				'Game Over',
+				{
+					fontSize: '64px',
+					fill: '#fff',
+					stroke: '#000',
+					strokeThickness: 6,
+				}
+			)
 			.setOrigin(0.5)
 			.setDepth(1000);
 
