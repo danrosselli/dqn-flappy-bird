@@ -37,6 +37,8 @@ const ACTOR_LR = 3e-4;
 const CRITIC_LR = 1e-3;
 const POLICY_EPSILON = 1e-7;
 
+const nextFrame = () => new Promise(res => requestAnimationFrame(res));
+
 export class PPOAgent {
   constructor() {
     this.actor = this.createActor();
@@ -203,6 +205,8 @@ export class PPOAgent {
 
         for (let start = 0; start < batchSize; start += MINI_BATCH_SIZE) {
           const end = Math.min(start + MINI_BATCH_SIZE, batchSize);
+
+          await nextFrame();
 
           // Gather mini-batch tensors
           const sliceIdx = indices.slice(start, end);
