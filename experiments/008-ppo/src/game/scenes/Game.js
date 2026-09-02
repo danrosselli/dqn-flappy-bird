@@ -53,7 +53,6 @@ export class Game extends Phaser.Scene {
 		this.lastTargetPipe = null;
 		this.lastDistanceToTarget = null;
 
-		this.agent.resetEpisode();
 		this.zones = [];
 		this.bonusReward = 0;
 		this.progressReward = 0;
@@ -205,7 +204,7 @@ export class Game extends Phaser.Scene {
 
 		// 2. Calcular Recompensa
 
-		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.02 : 0;
+		const flapPenalty = this.lastAction === ACTION_FLAP ? -0.01 : 0;
 
 		let progressReward = 0;
 
@@ -468,7 +467,8 @@ export class Game extends Phaser.Scene {
 		const deathReward = -20;
 
 		if (this.lastState !== null && this.lastAction !== null) {
-			// Terminal step: done=true, lastValue=0 forces V(s')=0
+			// Terminal step: done=true, V(s')=0
+			// The value is 0 for terminal steps because there is no next state.
 
 			this.agent.buffer.add(
 				this.lastState,
@@ -479,9 +479,12 @@ export class Game extends Phaser.Scene {
 				true
 			);
 
-			// Force PPO update with terminal value = 0
-
-			await this.agent.forceUpdate(0);
+			// Only run a PPO update if the terminal step filled the buffer.
+			// Otherwise keep accumulating across episode boundaries so the
+			// buffer fills naturally and batches never become tiny.
+			if (this.agent.buffer.isReady()) {
+				await this.agent.forceUpdate(0);
+			}
 		}
 
 		this.highScore = Math.max(this.highScore, this.score);

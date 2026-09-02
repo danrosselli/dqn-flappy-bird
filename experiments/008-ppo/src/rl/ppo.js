@@ -17,6 +17,7 @@
 import * as tf from '@tensorflow/tfjs';
 import { RolloutBuffer, STATE_SIZE } from './rolloutBuffer.js';
 import { PersistenceManager } from './persistenceManager.js';
+import { RunningMeanStd } from './runningMeanStd.js';
 
 export const ACTION_IDLE = 0;
 export const ACTION_FLAP = 1;
@@ -36,8 +37,24 @@ const VALUE_LOSS_COEF = 0.5;
 const ACTOR_LR = 3e-4;
 const CRITIC_LR = 1e-3;
 const POLICY_EPSILON = 1e-7;
+const MIN_BATCH_SIZE = 32;
+const MAX_GRAD_NORM = 0.5;
 
 const nextFrame = () => new Promise(res => requestAnimationFrame(res));
+
+function clipGradsByGlobalNorm(grads, maxNorm) {
+  return tf.tidy(() => {
+    const tensors = Object.values(grads);
+    const gradSquares = tensors.map(t => t.square().sum());
+    const globalNorm = tf.addN(gradSquares).sqrt();
+    const clipCoeff = tf.minimum(globalNorm, tf.scalar(maxNorm)).div(globalNorm.add(1e-6));
+    const clipped = {};
+    for (const [key, grad] of Object.entries(grads)) {
+      clipped[key] = grad.mul(clipCoeff);
+    }
+    return clipped;
+  });
+}
 
 export class PPOAgent {
   constructor() {
@@ -51,6 +68,7 @@ export class PPOAgent {
     this.lastClipFraction = null;
     this.trainingInProgress = false;
     this.trainingPromise = null;
+    this.advantageNormalizer = new RunningMeanStd();
 
     // Current mini-batch data (set before each minimize() call)
     this._mini = null;
@@ -180,6 +198,7 @@ export class PPOAgent {
     }
 
     if (this.buffer.size === 0) return null;
+    if (this.buffer.size < MIN_BATCH_SIZE) return null;
 
     return this.startTraining(bootstrapValue);
   }
@@ -206,10 +225,12 @@ export class PPOAgent {
       // training runs in time slices across frames.
       this.buffer.clear();
 
-      // Normalize advantages (standard PPO trick)
-      const advMean = advantages.mean();
-      const advStd = advantages.sub(advMean).square().mean().add(1e-8).sqrt();
-      const normalizedAdvantages = advantages.sub(advMean).div(advStd);
+      // Normalize advantages with running statistics
+      const rawAdvantages = Array.from(advantages.dataSync());
+      this.advantageNormalizer.update(rawAdvantages);
+      const normalizedAdvantages = tf.tensor1d(
+        rawAdvantages.map(v => this.advantageNormalizer.normalize(v))
+      );
 
       // Shuffle independently for every PPO epoch.
       const indices = Array.from({ length: batchSize }, (_, i) => i);
@@ -242,8 +263,8 @@ export class PPOAgent {
           // Store for closures
           this._mini = { miniStates, miniActions, miniAdvantages, miniOldLogProbs, miniReturns };
 
-          // --- Actor update ---
-          const actorLoss = this.actor.optimizer.minimize(() => {
+          // --- Actor update (with gradient clipping) ---
+          const actorResult = this.actor.optimizer.computeGradients(() => {
             const probs = this.actor.predict(this._mini.miniStates);
             const safeProbs = probs.add(POLICY_EPSILON);
             const logProbsAll = safeProbs.log();
@@ -259,7 +280,11 @@ export class PPOAgent {
             const entropy = safeProbs.mul(logProbsAll).sum(1).neg().mean();
 
             return policyLoss.sub(entropy.mul(ENTROPY_COEF));
-          }, true);
+          });
+          const actorLoss = actorResult.value;
+          this.actor.optimizer.applyGradients(
+            clipGradsByGlobalNorm(actorResult.grads, MAX_GRAD_NORM)
+          );
 
           // Compute clip fraction for monitoring (outside gradient scope)
           const clipFrac = tf.tidy(() => {
@@ -273,12 +298,16 @@ export class PPOAgent {
             return clipped.toFloat().mean().dataSync()[0];
           });
 
-          // --- Critic update ---
-          const criticLoss = this.critic.optimizer.minimize(() => {
+          // --- Critic update (with gradient clipping) ---
+          const criticResult = this.critic.optimizer.computeGradients(() => {
             const values = this.critic.predict(this._mini.miniStates).squeeze();
             const valueLoss = values.sub(this._mini.miniReturns).square().mean();
             return valueLoss.mul(VALUE_LOSS_COEF);
-          }, true);
+          });
+          const criticLoss = criticResult.value;
+          this.critic.optimizer.applyGradients(
+            clipGradsByGlobalNorm(criticResult.grads, MAX_GRAD_NORM)
+          );
 
           // Accumulate losses
           const aLoss = actorLoss ? actorLoss.dataSync()[0] : 0;
