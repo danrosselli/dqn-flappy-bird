@@ -43,17 +43,25 @@ const MAX_GRAD_NORM = 0.5;
 const nextFrame = () => new Promise(res => requestAnimationFrame(res));
 
 function clipGradsByGlobalNorm(grads, maxNorm) {
-  return tf.tidy(() => {
-    const tensors = Object.values(grads);
-    const gradSquares = tensors.map(t => t.square().sum());
-    const globalNorm = tf.addN(gradSquares).sqrt();
-    const clipCoeff = tf.minimum(globalNorm, tf.scalar(maxNorm)).div(globalNorm.add(1e-6));
-    const clipped = {};
-    for (const [key, grad] of Object.entries(grads)) {
-      clipped[key] = grad.mul(clipCoeff);
-    }
-    return clipped;
-  });
+  const tensors = Object.values(grads);
+
+  const maxNormScalar = tf.scalar(maxNorm);
+  const gradSquares = tensors.map(t => t.square().sum());
+  const globalNorm = tf.addN(gradSquares).sqrt();
+  const clipCoeff = tf.minimum(globalNorm, maxNormScalar).div(globalNorm.add(1e-6));
+
+  const clipped = {};
+  for (const [key, grad] of Object.entries(grads)) {
+    clipped[key] = grad.mul(clipCoeff);
+  }
+
+  // Dispose intermediate tensors (NOT the input grads or the clipped results).
+  gradSquares.forEach(t => t.dispose());
+  globalNorm.dispose();
+  maxNormScalar.dispose();
+  clipCoeff.dispose();
+
+  return clipped;
 }
 
 export class PPOAgent {
@@ -162,12 +170,9 @@ export class PPOAgent {
     const promise = this.train(lastValue);
     this.trainingPromise = promise;
 
-    promise.finally(() => {
-      if (this.trainingPromise === promise) {
-        this.trainingPromise = null;
-      }
-    });
-
+    // Note: do NOT chain .finally() here, which would create an untracked
+    // child promise. Instead, the caller awaits the returned promise and the
+    // cleanup is done inside train()'s finally block.
     return promise;
   }
 
@@ -213,12 +218,15 @@ export class PPOAgent {
     if (this.trainingInProgress) return null;
     this.trainingInProgress = true;
 
+    let states = null, actions = null, advantages = null,
+        returns = null, oldLogProbs = null, normalizedAdvantages = null;
+
     try {
       // 1. Compute advantages and returns
       this.buffer.computeAdvantages(lastValue, GAMMA, LAMBDA);
 
       // 2. Get data as tensors
-      const { states, actions, advantages, returns, oldLogProbs } = this.buffer.get();
+      ({ states, actions, advantages, returns, oldLogProbs } = this.buffer.get());
       const batchSize = this.buffer.size;
 
       // Tensors are copies, so the buffer can be freed immediately while the
@@ -228,7 +236,7 @@ export class PPOAgent {
       // Normalize advantages with running statistics
       const rawAdvantages = Array.from(advantages.dataSync());
       this.advantageNormalizer.update(rawAdvantages);
-      const normalizedAdvantages = tf.tensor1d(
+      normalizedAdvantages = tf.tensor1d(
         rawAdvantages.map(v => this.advantageNormalizer.normalize(v))
       );
 
@@ -252,81 +260,73 @@ export class PPOAgent {
 
           await nextFrame();
 
-          // Gather mini-batch tensors
-          const sliceIdx = indices.slice(start, end);
-          const miniStates = tf.gather(states, tf.tensor1d(sliceIdx, 'int32'));
-          const miniActions = tf.gather(actions, tf.tensor1d(sliceIdx, 'int32'));
-          const miniAdvantages = tf.gather(normalizedAdvantages, tf.tensor1d(sliceIdx, 'int32'));
-          const miniOldLogProbs = tf.gather(oldLogProbs, tf.tensor1d(sliceIdx, 'int32'));
-          const miniReturns = tf.gather(returns, tf.tensor1d(sliceIdx, 'int32'));
+          // Entire mini-batch enclosed in tf.tidy so ALL intermediate tensors
+          // (gather results, forward-pass activations, gradients and clipped
+          // gradients) are disposed automatically. Only JS numbers escape.
+          const { aLoss, cLoss, clipFrac } = tf.tidy(() => {
+            const sliceIdx = indices.slice(start, end);
+            const idxTensor = tf.tensor1d(sliceIdx, 'int32');
 
-          // Store for closures
-          this._mini = { miniStates, miniActions, miniAdvantages, miniOldLogProbs, miniReturns };
+            const miniStates = tf.gather(states, idxTensor);
+            const miniActions = tf.gather(actions, idxTensor);
+            const miniAdvantages = tf.gather(normalizedAdvantages, idxTensor);
+            const miniOldLogProbs = tf.gather(oldLogProbs, idxTensor);
+            const miniReturns = tf.gather(returns, idxTensor);
+            idxTensor.dispose();
 
-          // --- Actor update (with gradient clipping) ---
-          const actorResult = this.actor.optimizer.computeGradients(() => {
-            const probs = this.actor.predict(this._mini.miniStates);
-            const safeProbs = probs.add(POLICY_EPSILON);
-            const logProbsAll = safeProbs.log();
-            const actionMask = tf.oneHot(this._mini.miniActions, ACTION_SIZE);
-            const newLogProbs = logProbsAll.mul(actionMask).sum(1);
+            this._mini = { miniStates, miniActions, miniAdvantages, miniOldLogProbs, miniReturns };
 
-            const ratio = newLogProbs.sub(this._mini.miniOldLogProbs).exp();
-            const clippedRatio = tf.clipByValue(ratio, 1 - CLIP_EPSILON, 1 + CLIP_EPSILON);
-            const surr1 = ratio.mul(this._mini.miniAdvantages);
-            const surr2 = clippedRatio.mul(this._mini.miniAdvantages);
-            const policyLoss = tf.minimum(surr1, surr2).mean().neg();
+            // --- Actor update (with gradient clipping) ---
+            const actorResult = this.actor.optimizer.computeGradients(() => {
+              const probs = this.actor.predict(this._mini.miniStates);
+              const safeProbs = probs.add(POLICY_EPSILON);
+              const logProbsAll = safeProbs.log();
+              const actionMask = tf.oneHot(this._mini.miniActions, ACTION_SIZE);
+              const newLogProbs = logProbsAll.mul(actionMask).sum(1);
 
-            const entropy = safeProbs.mul(logProbsAll).sum(1).neg().mean();
+              const ratio = newLogProbs.sub(this._mini.miniOldLogProbs).exp();
+              const clippedRatio = tf.clipByValue(ratio, 1 - CLIP_EPSILON, 1 + CLIP_EPSILON);
+              const surr1 = ratio.mul(this._mini.miniAdvantages);
+              const surr2 = clippedRatio.mul(this._mini.miniAdvantages);
+              const policyLoss = tf.minimum(surr1, surr2).mean().neg();
 
-            return policyLoss.sub(entropy.mul(ENTROPY_COEF));
+              const entropy = safeProbs.mul(logProbsAll).sum(1).neg().mean();
+
+              return policyLoss.sub(entropy.mul(ENTROPY_COEF));
+            });
+            this.actor.optimizer.applyGradients(
+              clipGradsByGlobalNorm(actorResult.grads, MAX_GRAD_NORM)
+            );
+            const aLoss = actorResult.value.dataSync()[0];
+
+            // Compute clip fraction for monitoring (shared forward pass)
+            const aProbs = this.actor.predict(this._mini.miniStates);
+            const aSafeProbs = aProbs.add(POLICY_EPSILON);
+            const aLogProbsAll = aSafeProbs.log();
+            const aMask = tf.oneHot(this._mini.miniActions, ACTION_SIZE);
+            const aNewLogProbs = aLogProbsAll.mul(aMask).sum(1);
+            const aRatio = aNewLogProbs.sub(this._mini.miniOldLogProbs).exp();
+            const aClipped = aRatio.less(1 - CLIP_EPSILON).logicalOr(aRatio.greater(1 + CLIP_EPSILON));
+            const clipFrac = aClipped.toFloat().mean().dataSync()[0];
+
+            // --- Critic update (with gradient clipping) ---
+            const criticResult = this.critic.optimizer.computeGradients(() => {
+              const values = this.critic.predict(this._mini.miniStates).squeeze();
+              const valueLoss = values.sub(this._mini.miniReturns).square().mean();
+              return valueLoss.mul(VALUE_LOSS_COEF);
+            });
+            this.critic.optimizer.applyGradients(
+              clipGradsByGlobalNorm(criticResult.grads, MAX_GRAD_NORM)
+            );
+            const cLoss = criticResult.value.dataSync()[0];
+
+            return { aLoss, cLoss, clipFrac };
           });
-          const actorLoss = actorResult.value;
-          this.actor.optimizer.applyGradients(
-            clipGradsByGlobalNorm(actorResult.grads, MAX_GRAD_NORM)
-          );
-
-          // Compute clip fraction for monitoring (outside gradient scope)
-          const clipFrac = tf.tidy(() => {
-            const probs = this.actor.predict(this._mini.miniStates);
-            const safeProbs = probs.add(POLICY_EPSILON);
-            const logProbsAll = safeProbs.log();
-            const actionMask = tf.oneHot(this._mini.miniActions, ACTION_SIZE);
-            const newLogProbs = logProbsAll.mul(actionMask).sum(1);
-            const ratio = newLogProbs.sub(this._mini.miniOldLogProbs).exp();
-            const clipped = ratio.less(1 - CLIP_EPSILON).logicalOr(ratio.greater(1 + CLIP_EPSILON));
-            return clipped.toFloat().mean().dataSync()[0];
-          });
-
-          // --- Critic update (with gradient clipping) ---
-          const criticResult = this.critic.optimizer.computeGradients(() => {
-            const values = this.critic.predict(this._mini.miniStates).squeeze();
-            const valueLoss = values.sub(this._mini.miniReturns).square().mean();
-            return valueLoss.mul(VALUE_LOSS_COEF);
-          });
-          const criticLoss = criticResult.value;
-          this.critic.optimizer.applyGradients(
-            clipGradsByGlobalNorm(criticResult.grads, MAX_GRAD_NORM)
-          );
-
-          // Accumulate losses
-          const aLoss = actorLoss ? actorLoss.dataSync()[0] : 0;
-          const cLoss = criticLoss ? criticLoss.dataSync()[0] : 0;
-
-          if (actorLoss) actorLoss.dispose();
-          if (criticLoss) criticLoss.dispose();
 
           totalActorLoss += aLoss;
           totalCriticLoss += cLoss;
           totalClipFrac += clipFrac;
           numBatches++;
-
-          // Cleanup mini-batch tensors
-          miniStates.dispose();
-          miniActions.dispose();
-          miniAdvantages.dispose();
-          miniOldLogProbs.dispose();
-          miniReturns.dispose();
         }
       }
 
@@ -335,22 +335,28 @@ export class PPOAgent {
       this.lastClipFraction = totalClipFrac / numBatches;
       this._mini = null;
 
-      // Cleanup rollout tensors
-      states.dispose();
-      actions.dispose();
-      advantages.dispose();
-      normalizedAdvantages.dispose();
-      returns.dispose();
-      oldLogProbs.dispose();
+      if (tf.engine().backend) {
+        const mem = tf.memory();
+        console.log(`[PPO] train done | tensors: ${mem.numTensors} | MB: ${(mem.numBytes / 1048576).toFixed(2)}`);
+      }
 
       return this.lastActorLoss;
     } catch (error) {
       console.error('PPO training error:', error);
       this._mini = null;
-      this.buffer.clear();
       return null;
     } finally {
+      // Guarantee cleanup of all rollout tensors even on error.
+      try { if (states) states.dispose(); } catch (e) { }
+      try { if (actions) actions.dispose(); } catch (e) { }
+      try { if (advantages) advantages.dispose(); } catch (e) { }
+      try { if (normalizedAdvantages) normalizedAdvantages.dispose(); } catch (e) { }
+      try { if (returns) returns.dispose(); } catch (e) { }
+      try { if (oldLogProbs) oldLogProbs.dispose(); } catch (e) { }
+
+      this._mini = null;
       this.trainingInProgress = false;
+      this.trainingPromise = null;
     }
   }
 

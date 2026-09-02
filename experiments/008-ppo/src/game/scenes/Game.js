@@ -506,25 +506,6 @@ export class Game extends Phaser.Scene {
 			this.pipeTimer = null;
 		}
 
-		if (this.pipes) {
-			try {
-				this.pipes.setVelocityX(0);
-			} catch (e) { }
-		}
-
-		if (this.zones) {
-			this.zones.forEach(zone => {
-				if (zone.body) zone.body.setVelocityX(0);
-			});
-		}
-
-		if (this.bird && this.bird.body) {
-			try {
-				this.bird.setVelocity(0);
-				this.bird.body.setAllowGravity(false);
-			} catch (e) { }
-		}
-
 		try {
 			this.physics.pause();
 		} catch (e) { }
@@ -549,8 +530,6 @@ export class Game extends Phaser.Scene {
 			.setDepth(1000);
 
 		this.time.delayedCall(500, () => {
-			this.anims.resumeAll();
-			this.physics.resume();
 			this.scene.restart();
 		});
 	}
