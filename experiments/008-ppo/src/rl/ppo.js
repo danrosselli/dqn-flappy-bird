@@ -50,6 +50,7 @@ export class PPOAgent {
     this.lastCriticLoss = null;
     this.lastClipFraction = null;
     this.trainingInProgress = false;
+    this.trainingPromise = null;
 
     // Current mini-batch data (set before each minimize() call)
     this._mini = null;
@@ -57,7 +58,6 @@ export class PPOAgent {
 
   createActor() {
     const model = tf.sequential();
-
     model.add(tf.layers.dense({
       units: 64,
       activation: 'relu',
@@ -84,7 +84,6 @@ export class PPOAgent {
 
   createCritic() {
     const model = tf.sequential();
-
     model.add(tf.layers.dense({
       units: 64,
       activation: 'relu',
@@ -120,12 +119,9 @@ export class PPOAgent {
       const probs = probabilities.dataSync();
 
       const random = Math.random();
-      const action = random < probs[ACTION_FLAP]
-        ? ACTION_FLAP
-        : ACTION_IDLE;
+      const action = random < probs[ACTION_FLAP] ? ACTION_FLAP : ACTION_IDLE;
 
       const logProb = Math.log(probs[action] + POLICY_EPSILON);
-
       const valueTensor = this.critic.predict(stateTensor);
       const value = valueTensor.dataSync()[0];
 
@@ -140,6 +136,24 @@ export class PPOAgent {
   }
 
   /**
+   * Start PPO training and keep a reference to the active Promise.
+   */
+  startTraining(lastValue) {
+    if (this.trainingInProgress) return this.trainingPromise;
+
+    const promise = this.train(lastValue);
+    this.trainingPromise = promise;
+
+    promise.finally(() => {
+      if (this.trainingPromise === promise) {
+        this.trainingPromise = null;
+      }
+    });
+
+    return promise;
+  }
+
+  /**
    * Collect one transition.
    *
    * bootstrapValue is the value of the NEXT state after this transition.
@@ -149,7 +163,7 @@ export class PPOAgent {
     this.buffer.add(state, action, reward, value, logProb, done);
 
     if (this.buffer.isReady()) {
-      return this.train(done ? 0 : bootstrapValue);
+      return this.startTraining(done ? 0 : bootstrapValue);
     }
 
     return null;
@@ -161,8 +175,13 @@ export class PPOAgent {
    * For a non-terminal partial rollout, pass V(nextState).
    */
   async forceUpdate(bootstrapValue = 0) {
-    if (this.buffer.size === 0 || this.trainingInProgress) return null;
-    return this.train(bootstrapValue);
+    if (this.trainingInProgress && this.trainingPromise) {
+      await this.trainingPromise;
+    }
+
+    if (this.buffer.size === 0) return null;
+
+    return this.startTraining(bootstrapValue);
   }
 
   /**
@@ -228,13 +247,11 @@ export class PPOAgent {
             const probs = this.actor.predict(this._mini.miniStates);
             const safeProbs = probs.add(POLICY_EPSILON);
             const logProbsAll = safeProbs.log();
-
             const actionMask = tf.oneHot(this._mini.miniActions, ACTION_SIZE);
             const newLogProbs = logProbsAll.mul(actionMask).sum(1);
 
             const ratio = newLogProbs.sub(this._mini.miniOldLogProbs).exp();
             const clippedRatio = tf.clipByValue(ratio, 1 - CLIP_EPSILON, 1 + CLIP_EPSILON);
-
             const surr1 = ratio.mul(this._mini.miniAdvantages);
             const surr2 = clippedRatio.mul(this._mini.miniAdvantages);
             const policyLoss = tf.minimum(surr1, surr2).mean().neg();
@@ -266,6 +283,7 @@ export class PPOAgent {
           // Accumulate losses
           const aLoss = actorLoss ? actorLoss.dataSync()[0] : 0;
           const cLoss = criticLoss ? criticLoss.dataSync()[0] : 0;
+
           if (actorLoss) actorLoss.dispose();
           if (criticLoss) criticLoss.dispose();
 
@@ -340,6 +358,7 @@ export class PPOAgent {
       generation,
       highScore
     });
+
     console.log('PPO salvo! Gen:', generation);
   }
 
@@ -384,12 +403,14 @@ export class PPOAgent {
         if (metadata) {
           const generation = metadata.generation ?? 1;
           const highScore = metadata.highScore ?? 0;
+
           console.log(
             'PPO carregado. Gen:',
             generation,
             'HighScore:',
             highScore
           );
+
           return { success: true, generation, highScore };
         }
 
