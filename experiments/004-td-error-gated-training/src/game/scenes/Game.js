@@ -24,6 +24,7 @@ export class Game extends Phaser.Scene {
 		this.load.image('bird_down', 'bluebird-downflap.png');
 		this.load.image('pipeGreen', 'pipe-green.png');
 		this.load.image('pipeRed', 'pipe-red.png');
+		this.load.image('base', 'base.png');
 	}
 
 	async create() {
@@ -49,6 +50,14 @@ export class Game extends Phaser.Scene {
 
 		const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'bg');
 		bg.setDisplaySize(this.scale.width, this.scale.height);
+
+		this.GROUND_H = 92;
+
+		this.ground = this.add.tileSprite(0, this.scale.height, this.scale.width * 2, this.GROUND_H, 'base').setOrigin(0, 1);
+		this.ground.setDepth(5);
+		this.physics.add.existing(this.ground);
+		this.ground.body.setAllowGravity(false);
+		this.ground.body.setImmovable(true);
 
 		this.bird = this.physics.add.sprite(120, this.scale.height / 2, 'bird_mid');
 		this.bird.setGravityY(1000);
@@ -125,10 +134,11 @@ export class Game extends Phaser.Scene {
 		});
 
 		this.physics.add.collider(this.bird, this.pipes, this.hitPipe, null, this);
+		this.physics.add.collider(this.bird, this.ground, this.hitPipe, null, this);
 		this.ready = true;
 	}
 
-	async update() {
+	async update(time, delta) {
 		if (this.gameOver || !this.ready) return; // ← PROTEÇÃO AQUI
 
 		// NOVA: Acelera pipes com score + CAP MÁXIMO 450 (evita impossível)
@@ -139,6 +149,10 @@ export class Game extends Phaser.Scene {
 				zone.body.setVelocityX(-pipeSpeed);
 			}
 		});
+
+		if (this.ground) {
+			this.ground.tilePositionX += pipeSpeed * (delta / 1000);
+		}
 
 		// 1. Observar Estado
 		const closestPipe = this.getClosestPipe();
@@ -346,8 +360,14 @@ export class Game extends Phaser.Scene {
 
 	addPipeRow() {
 		const gap = Phaser.Math.Between(200, 410);
-		const centerY = Phaser.Math.Between(150, this.scale.height - 150);
+		let centerY = Phaser.Math.Between(150, this.scale.height - 150);
 		const x = this.scale.width + 50;
+
+		const bottomMouthLimit = this.scale.height - this.GROUND_H;
+
+		if (centerY + gap / 2 > bottomMouthLimit) {
+			centerY = bottomMouthLimit - gap / 2;
+		}
 
 		const pipeKey = Phaser.Math.Between(0, 1) === 0 ? 'pipeGreen' : 'pipeRed';
 
