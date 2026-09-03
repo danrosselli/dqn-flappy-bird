@@ -52,7 +52,6 @@ export class Game extends Phaser.Scene {
 
 		this.bird = this.physics.add.sprite(120, this.scale.height / 2, 'bird_mid');
 		this.bird.setGravityY(1000);
-		this.bird.setCollideWorldBounds(true);
 
 		if (!this.anims.exists('fly')) {
 			this.anims.create({
