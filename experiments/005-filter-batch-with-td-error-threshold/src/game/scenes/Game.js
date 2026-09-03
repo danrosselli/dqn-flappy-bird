@@ -163,6 +163,9 @@ export class Game extends Phaser.Scene {
 				dyNext = this.bird.y - next.body.center.y;
 				gapNext = next.height;
 			}
+		} else {
+			dy = this.bird.y - this.scale.height / 2;
+			dyNext = this.bird.y - this.scale.height / 2;
 		}
 
 		// Normaliza velocidade de 200 a 400 para o intervalo [-1, 1]

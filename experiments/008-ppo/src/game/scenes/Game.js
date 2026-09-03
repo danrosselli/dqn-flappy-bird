@@ -162,11 +162,6 @@ export class Game extends Phaser.Scene {
 		let dx = 1058, dy = 0, velY = this.bird.body.velocity.y, gapHeight = 300,
 			dxNext = 1058, dyNext = 0, gapNext = 300;
 
-		if (pipesAhead.length === 0) {
-			dy = this.bird.y - this.scale.height / 2;
-			dyNext = this.bird.y - this.scale.height / 2;
-		}
-
 		if (pipesAhead.length > 0) {
 			const current = pipesAhead[0];
 
@@ -185,6 +180,9 @@ export class Game extends Phaser.Scene {
 				dyNext = this.bird.y - next.body.center.y;
 				gapNext = next.height;
 			}
+		} else {
+			dy = this.bird.y - this.scale.height / 2;
+			dyNext = this.bird.y - this.scale.height / 2;
 		}
 
 		const normalizedSpeed = ((pipeSpeed - 200) / 100) - 1;
