@@ -35,7 +35,7 @@ export const LEARNING_RATE = 0.001;
 export const TRAIN_THROTTLE = 2;
 
 // --- Adaptive Prioritized Training / TD-Error Filter ---
-export const TD_NORM_THRESHOLD = 0.04;
+export const TD_NORM_THRESHOLD = 0.015;
 export const INITIAL_SAMPLE_SIZE = 32;
 export const MIN_VALID_SAMPLES = 12;
 export const MAX_SAMPLE_SIZE = 128;

@@ -131,12 +131,8 @@ export class Game extends Phaser.Scene {
 		this.resetBtn.addListener('click');
 		this.resetBtn.on('click', () => this.handleReset());
 
-		this.pipeTimer = this.time.addEvent({
-			delay: 1900,
-			callback: this.addPipeRow,
-			callbackScope: this,
-			loop: true,
-		});
+		this.lastPipeX = null;
+		this.addPipeRow();
 
 		this.physics.add.collider(this.bird, this.pipes, this.hitPipe, null, this);
 		this.physics.add.collider(this.bird, this.ground, this.hitPipe, null, this);
@@ -154,6 +150,19 @@ export class Game extends Phaser.Scene {
 				zone.body.setVelocityX(-pipeSpeed);
 			}
 		});
+
+		const spawnDistance = 380 + (pipeSpeed - 200) * 0.7;
+
+		if (this.lastPipeX === null) {
+			this.lastPipeX = this.scale.width + 50;
+		}
+
+		const lastPipe = this.zones[this.zones.length - 1];
+
+		if (lastPipe && this.lastPipeX - lastPipe.x >= spawnDistance) {
+			this.lastPipeX = this.scale.width + 50;
+			this.addPipeRow();
+		}
 
 		if (this.ground) {
 			this.ground.tilePositionX += pipeSpeed * (delta / 1000);
@@ -454,10 +463,8 @@ export class Game extends Phaser.Scene {
 	}
 
 	endGame() {
-		if (this.pipeTimer) {
-			try { this.pipeTimer.remove(false); } catch (e) { }
-			this.pipeTimer = null;
-		}
+		
+
 		if (this.pipes) {
 			try { this.pipes.setVelocityX(0); } catch (e) { }
 		}
