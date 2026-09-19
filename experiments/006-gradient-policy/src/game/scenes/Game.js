@@ -89,12 +89,13 @@ export class Game extends Phaser.Scene {
 		});
 
 		// HUD Text (agora no lado direito)
-		this.hudText = this.add.text(this.scale.width - 40, 30, '', {
+		this.hudText = this.add.text(this.scale.width, 30, '', {
 			fontSize: '18px',
 			fill: '#ff0',
 			stroke: '#000',
 			strokeThickness: 3,
-			align: 'left'  // Alinha o texto à direita
+			align: 'left',
+			fixedWidth: 220
 		}).setOrigin(1, 0);  // Origem no canto superior direito
 		this.hudText.setDepth(1000);
 
@@ -102,10 +103,10 @@ export class Game extends Phaser.Scene {
 		this.hudBackground = this.add.rectangle(
 			this.scale.width - 20,  // Mesmo X do texto (alinhado à direita)
 			20,                     // Mesmo Y do topo do texto
-			200,                    // Largura fixa (ajuste se precisar mais/menos)
+			210,                    // Largura fixa (ajuste se precisar mais/menos)
 			380,                    // Altura aproximada (cobre todo o texto)
 			0x000000,               // Cor preta
-			0.2                     // Alpha 0.6 = semi-transparente
+			0.2                     // Alpha = semi-transparente
 		).setOrigin(1, 0);          // Origem no canto superior direito
 
 		this.hudBackground.setStrokeStyle(1, 0x000000, 0.8);  // Borda preta opcional
