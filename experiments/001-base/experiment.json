@@ -1,6 +1,6 @@
 {
   "name": "001-base",
-  "description": "DQN Flappy Bird with an 8-dimensional state",
+  "description": "DQN agent with an 8-dimensional state",
   "stateSize": 8,
   "stateFeatures": [
     {"name": "dx", "description": "Horizontal distance to the current pipe", "normalization": "(dx / 529) - 1, range [-1, +1]"},

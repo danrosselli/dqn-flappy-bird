@@ -1,6 +1,6 @@
 {
   "name": "002-state9",
-  "description": "DQN Flappy Bird with a 9-dimensional state (adds the bird's absolute position)",
+  "description": "DQN agent with a 9-dimensional state (adds the bird's absolute position)",
   "stateSize": 9,
   "stateFeatures": [
     {"name": "dx", "description": "Horizontal distance to the current pipe", "normalization": "(dx / 529) - 1, range [-1, +1]"},

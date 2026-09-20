@@ -129,14 +129,14 @@
       if (hint) hint.hidden = true;
       if (loading) loading.hidden = false;
 
-      const src = `/dqn-flappy-bird/game/${slug}/index.html`;
+      const src = `/rl-flappy-bird/game/${slug}/index.html`;
       fetch(src, { method: "HEAD" })
         .then((res) => {
           if (!res.ok) return showFallback();
           if (!stage) return;
           const iframe = document.createElement("iframe");
           iframe.src = src;
-          iframe.title = "DQN Flappy Bird — the agent training live in your browser";
+          iframe.title = "RL Flappy Bird — the agent training live in your browser";
           iframe.loading = "lazy";
           iframe.setAttribute("allow", "autoplay; fullscreen; cross-origin-isolated");
           stage.appendChild(iframe);

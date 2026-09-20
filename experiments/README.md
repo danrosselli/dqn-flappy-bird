@@ -2,7 +2,7 @@
 
 This directory contains the documentation, configuration, metadata, and results associated with each machine learning experiment.
 
-An experiment represents a specific hypothesis or change to the DQN Flappy Bird agent. An experiment can involve anything from a small parameter adjustment to a major architectural change involving multiple source files.
+An experiment represents a specific hypothesis or change to the RL Flappy Bird agent. An experiment can involve anything from a small parameter adjustment to a major architectural change involving multiple source files.
 
 The Git repository is responsible for preserving the exact state of the source code used by an experiment. This directory is responsible for documenting **why the experiment was performed, how it was configured, what happened, and what was learned from it**.
 

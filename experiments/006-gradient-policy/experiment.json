@@ -1,6 +1,6 @@
 {
   "name": "006-gradient-policy",
-  "description": "Gradient Policy",
+  "description": "REINFORCE (episodic policy gradient) — softmax policy trained on complete episode returns",
   "stateSize": 8,
   "stateFeatures": [
     {"name": "dx", "description": "Horizontal distance to the current pipe", "normalization": "(dx / 529) - 1, range [-1, +1]"},
@@ -13,36 +13,24 @@
     {"name": "speed", "description": "Current pipe speed", "normalization": "((speed - 200) / 100) - 1, range [-1, +1]"}
   ],
   "terminalState": [0, 0, 0, 0, 0, 0, 0, 0],
-  "network": {
+  "policy": {
     "architecture": "sequential",
     "layers": [
       {"type": "dense", "units": 64, "activation": "relu", "inputShape": 8},
       {"type": "dense", "units": 64, "activation": "relu"},
-      {"type": "dense", "units": 2, "activation": "linear"}
+      {"type": "dense", "units": 2, "activation": "softmax"}
     ],
     "optimizer": "adam",
-    "optimizerParams": {"learningRate": 0.001},
-    "loss": "meanSquaredError",
-    "targetNetwork": true
+    "optimizerParams": {"learningRate": 0.003},
+    "loss": "-G_t * log π(a|s) (REINFORCE, z-score normalized returns)"
   },
-  "buffer": {
-    "type": "hybrid-reservoir",
-    "recentSize": 10000,
-    "reservoirSize": 40000,
-    "legacySize": 50000,
-    "totalCapacity": 100000,
-    "discardPolicy": "Discards states where no pipe is visible (dx >= 1)",
-    "availableStrategies": [
-      "sampleRandomBasic",
-      "sampleLastPrioritizedAndRandom",
-      "sampleRewardPrioritized",
-      "sampleHybridWithRecentSeq",
-      "sampleHybridWithCrashFocus",
-      "sampleHybrid"
-    ]
+  "trajectory": {
+    "maxSteps": 10000,
+    "updateTiming": "end of episode",
+    "returnNormalization": "z-score (mean/std)"
   },
   "exploration": {
-    "strategy": "epsilon-greedy",
-    "actionBias": "95% idle, 5% flap during random exploration"
+    "strategy": "softmax-policy",
+    "description": "Action sampled from the policy's probability distribution (no epsilon-greedy)"
   }
 }

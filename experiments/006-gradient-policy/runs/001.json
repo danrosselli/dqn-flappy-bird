@@ -3,30 +3,28 @@
   "createdAt": "2026-08-12T00:30:00-03:00",
 
   "parameters": {
-    "learningRate": 0.001,
+    "learningRate": 0.003,
     "gamma": 0.99,
-    "batchSize": 64,
-    "targetUpdateFreq": 1000,
-    "trainThrottle": 2,
-    "activeStrategy": "sampleRandomBasic"
+    "maxTrajectory": 10000,
+    "updateTiming": "end of episode",
+    "returnNormalization": "z-score"
   },
 
   "rewards": {
-    "survival": 0.05,
+    "survival": 0,
     "passPipe": 10,
     "collision": -20,
     "velocityPenalty": -0.05,
-    "proximity": "gaussian(absDy / (scale.height/2), sigma=0.5) - 0.35, clamped >= -1.0"
+    "flapPenalty": -0.1,
+    "proximity": "gaussian(absDy / (scale.height/2), sigma=0.5), range (0, 1]"
   },
 
   "exploration": {
-    "epsilonStart": 0.9,
-    "epsilonMin": 0.0,
-    "epsilonDecay": 0.9995
+    "strategy": "softmax-policy"
   },
 
   "results": {
-    "episodes": 2160,
-    "bestScore": 485
+    "episodes": 0,
+    "bestScore": 0
   }
 }

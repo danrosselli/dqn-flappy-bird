@@ -34,7 +34,7 @@ rl-flappy-bird/
 │   ├── 004-td-error-gated-training/
 │   ├── 005-filter-batch-with-td-error-threshold/
 │   ├── 006-gradient-policy/   # REINFORCE (episodic policy gradient)
-│   ├── 007-actor-ctritic/     # Actor-Critic (online one-step TD)
+│   ├── 007-actor-critic/      # Actor-Critic (online one-step TD)
 │   └── 008-ppo/               # PPO (clipped surrogate + GAE-lambda)
 ├── data/                      # Training history datasets
 ├── site/                      # Documentation website (Eleventy)
@@ -68,7 +68,7 @@ experiments/001-base/
 | 004 | td-error-gated-training | DQN | 8-dim | — | Skips updates when the batch TD-error is low |
 | 005 | filter-batch-with-td-error-threshold | DQN | 8-dim | — | Filters the batch by a TD-error threshold |
 | 006 | gradient-policy | REINFORCE | 8-dim | — | Episodic policy gradient over full trajectories |
-| 007 | actor-ctritic | Actor-Critic | 8-dim | — | Online one-step TD advantage, per-frame updates |
+| 007 | actor-critic | Actor-Critic | 8-dim | — | Online one-step TD advantage, per-frame updates |
 | 008 | ppo | PPO | 8-dim | — | Batched updates, GAE-lambda, clipped surrogate objective |
 
 Each experiment is a self-contained directory with its own `package.json`, source code, config, and results. The documentation site reads `experiment.json` and `runs/*.json` to auto-generate experiment pages.

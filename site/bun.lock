@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "dqn-flappy-bird-site",
+      "name": "rl-flappy-bird-site",
       "devDependencies": {
         "@11ty/eleventy": "^3.0.0",
         "markdown-it": "^14.1.0",

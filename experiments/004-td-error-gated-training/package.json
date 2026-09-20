@@ -1,5 +1,5 @@
 {
-    "name": "001-base",
+    "name": "004-td-error-gated-training",
     "scripts": {
         "dev": "vite --config ../../vite/config.dev.mjs",
         "build": "vite build --config ../../vite/config.prod.mjs"

@@ -1,47 +1,46 @@
-# Gradient Policy
+# REINFORCE (Policy Gradient)
 
 ## Objective
 
-Establish the project's baseline: a standard DQN implementation assembled from well-established techniques in the deep RL literature — experience replay, target network, and epsilon-greedy exploration — configured to learn Flappy Bird from low-dimensional state inputs.
+Replace the value-based DQN approach with a policy-gradient method that learns a stochastic policy directly. REINFORCE optimizes the policy from complete episode returns, without a replay buffer or a target network.
 
 ## Hypothesis
 
-A compact MLP fed with relative pipe geometry, plus shaped rewards, should be sufficient to learn a competent flapping policy and produce a strong reference result for all subsequent experiments.
+A softmax policy trained on normalized discounted returns can learn a competent flapping policy from the same 8-dimensional state, trading DQN's sample efficiency for a simpler, unbiased update. The main risk is gradient variance, since every update depends on a full episode.
 
 ## Approach
 
 - **State (8-dim)**: horizontal distance and gap alignment for the current and next pipe (`dx`, `dy`, `gap`, `dxNext`, `dyNext`, `gapNext`), bird vertical velocity (`velY`) and current pipe speed (`speed`), all normalized to [-1, +1].
-- **Rewards**: survival bonus (+0.05/frame), pipe passage (+10), collision (-20), velocity penalty (-0.05 when |velY| > 700), and Gaussian proximity shaping toward the current gap center.
-- **Replay**: hybrid buffer combining a circular recent buffer (10k), reservoir sampling for long-term memory (40k), and a legacy circular buffer (50k). States with no pipe visible (dx >= 1) are discarded.
-- **Training**: target network hard-updated every 1000 steps, batch 64, Adam lr 0.001, gamma 0.99, train throttle 2.
-- **Exploration**: epsilon-greedy from 0.9 decaying by 0.9995 per successful update down to 0. Note that epsilon only decays when a batch actually trains, so early exploration lasts longer than a naive per-episode estimate suggests.
-
-This configuration follows the default recipe found across prior DQN studies, adapted to the game's non-stationarity (pipe speed rises with score).
+- **Architecture**: a single policy network 8→64→64→2 with a softmax output — each unit is the probability of an action.
+- **Update rule**: episodic REINFORCE.
+  - Discounted returns: `G_t = r_t + γ·G_{t+1}`
+  - Returns are z-score normalized (mean/std) for a more stable update.
+  - Loss: `-G_t · log π(a_t | s_t)`, averaged over the trajectory.
+- **Trajectory**: the current episode is collected in memory and consumed by a single update when the bird dies. The buffer is capped at 10,000 steps, keeping the most recent ones.
+- **Rewards**: Gaussian proximity shaping toward the current gap center (sigma 0.5, no offset), velocity penalty (-0.05 when |velY| > 700), flap penalty (-0.1 per flap), pipe passage (+10), collision (-20). No per-frame survival bonus.
+- **Exploration**: actions are sampled from the policy's softmax distribution — no epsilon-greedy.
 
 ## Changes
 
-- Initial implementation: `DQNAgent` on TensorFlow.js with sequential 8→64→64→2 network.
-- Hybrid reservoir replay buffer with six interchangeable sampling strategies.
-- Shaped reward function with proximity term.
-- Full persistence (weights, replay buffers, epsilon, generation counter) via IndexedDB.
-- In-game HUD with score, generation, epsilon, raw state values and Q-values.
+- Replaced `DQNAgent` with `PolicyGradientAgent` (softmax policy, episodic update).
+- Removed the replay buffer and the target network.
+- Added trajectory collection and a single end-of-episode gradient update.
+- Persistence metadata is tagged with `algorithm: 'reinforce'`, so a previously saved DQN is discarded instead of being loaded into the policy network.
+- HUD now shows action probabilities (P-Idle / P-Flap) instead of Q-values.
 
 ## Training
 
-Episodes: 2160
-Learning rate: 0.001
+Episodes: TBD
+Learning rate: 0.003
 Gamma: 0.99
-Batch size: 64
-Target update interval: 1000
-Train throttle: 2
-Sampling strategy: sampleRandomBasic
-Epsilon: 0.9 → 0.0 (decay 0.9995)
+Max trajectory: 10000 steps
+Update timing: end of episode
+Return normalization: z-score
 
 ## Results
 
-Best score: 485
-Episodes: 2160
+TBD
 
 ## Conclusion
 
-The baseline fulfilled its purpose: a standard DQN recipe was sufficient to reach a good result at the time, without any project-specific innovation. Experiment 001 is the reference point that every later experiment compares against.
+TBD

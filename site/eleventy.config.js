@@ -1,16 +1,16 @@
 /* ============================================================
- * DQN FLAPPY BIRD — PROJECT WEBSITE
+ * RL FLAPPY BIRD — PROJECT WEBSITE
  * Eleventy configuration
  * ------------------------------------------------------------
  * Static site generated for GitHub Pages project hosting:
- *   https://danrosselli.github.io/dqn-flappy-bird/
+ *   https://danrosselli.github.io/rl-flappy-bird/
  * All internal links and assets must respect the path prefix.
  * ============================================================ */
 
 import markdownIt from "markdown-it";
 import markdownItAnchor from "markdown-it-anchor";
 
-const PATH_PREFIX = "/dqn-flappy-bird/";
+const PATH_PREFIX = "/rl-flappy-bird/";
 
 export default function (eleventyConfig) {
   /* ------------------------------------------------------------

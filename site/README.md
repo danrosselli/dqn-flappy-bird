@@ -1,6 +1,6 @@
 # Project Website
 
-This directory contains the source code for the public website of the DQN Flappy Bird project.
+This directory contains the source code for the public website of the RL Flappy Bird project.
 
 The website documents the project, explains the reinforcement learning implementation, presents experiments and results, and publishes insights obtained during the development of the agent.
 
@@ -15,7 +15,7 @@ The website is not the game itself.
 The repository contains two related but distinct components:
 
 ```text
-DQN Flappy Bird
+RL Flappy Bird
 │
 ├── Game and AI
 │   └── src/
@@ -158,8 +158,8 @@ Example `site.json`:
 
 ```json
 {
-  "title": "DQN Flappy Bird",
-  "description": "Teaching an agent to play Flappy Bird using Deep Q-Learning.",
+  "title": "RL Flappy Bird",
+  "description": "Teaching an agent to play Flappy Bird using reinforcement learning.",
   "author": "Daniel Rosselli"
 }
 ```
@@ -171,7 +171,7 @@ Example `project.json`:
   "algorithm": "DQN",
   "game": "Flappy Bird",
   "status": "active",
-  "repository": "danrosselli/dqn-flappy-bird"
+  "repository": "danrosselli/rl-flappy-bird"
 }
 ```
 
@@ -289,13 +289,13 @@ The website will be hosted as a GitHub Pages project site.
 The expected URL is:
 
 ```text
-https://danrosselli.github.io/dqn-flappy-bird/
+https://danrosselli.github.io/rl-flappy-bird/
 ```
 
 The repository itself remains:
 
 ```text
-https://github.com/danrosselli/dqn-flappy-bird
+https://github.com/danrosselli/rl-flappy-bird
 ```
 
 GitHub Actions will build the site and deploy the generated Eleventy output to GitHub Pages.
@@ -331,7 +331,7 @@ This means the website is automatically updated whenever changes are pushed to t
 Because this is a GitHub Pages project site rather than a user site, the website is served under:
 
 ```text
-/dqn-flappy-bird/
+/rl-flappy-bird/
 ```
 
 The Eleventy configuration must therefore account for this path prefix when generating links to:
@@ -352,7 +352,7 @@ The configuration will use Eleventy's `pathPrefix` functionality.
 The overall repository architecture is:
 
 ```text
-dqn-flappy-bird/
+rl-flappy-bird/
 │
 ├── src/
 │   └── Game and AI implementation

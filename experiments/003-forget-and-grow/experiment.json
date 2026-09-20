@@ -1,6 +1,6 @@
 {
   "name": "003-forget-and-grow",
-  "description": "DQN Flappy Bird with Forget-and-Grow (FoG: ER decay + network expansion)",
+  "description": "DQN agent with Forget-and-Grow (FoG: ER decay + network expansion)",
   "stateSize": 8,
   "stateFeatures": [
     {"name": "dx", "description": "Horizontal distance to the current pipe", "normalization": "(dx / 529) - 1, range [-1, +1]"},

@@ -1,5 +1,5 @@
 # ============================================================
-# DQN Flappy Bird — Project website deployment
+# RL Flappy Bird — Project website deployment
 # Builds the Eleventy site (site/) and publishes it to GitHub
 # Pages. The game bundle is also built and exposed under /game/
 # so the Live Demo page can embed it without duplicating code.

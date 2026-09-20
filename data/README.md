@@ -1,6 +1,6 @@
 # Data
 
-This directory contains machine-generated and manually collected data produced by the DQN Flappy Bird project.
+This directory contains machine-generated and manually collected data produced by the RL Flappy Bird project.
 
 The purpose of this directory is to preserve information that is useful for:
 

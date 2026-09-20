@@ -1,5 +1,5 @@
 {
-    "name": "001-base",
+    "name": "005-filter-batch-with-td-error-threshold",
     "scripts": {
         "dev": "vite --config ../../vite/config.dev.mjs",
         "build": "vite build --config ../../vite/config.prod.mjs"

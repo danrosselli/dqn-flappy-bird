@@ -1,4 +1,4 @@
-# Forget-and-Grow (FoG) — Implementação para DQN Flappy Bird
+# Forget-and-Grow (FoG) — Implementação para o agente DQN
 
 **Objetivo deste documento:**  
 Documentar, de forma técnica e completa, a técnica **Forget-and-Grow (FoG)** aplicada ao experimento, servindo como referência de especificação e de implementação das modificações no código-fonte existente (`src/`).

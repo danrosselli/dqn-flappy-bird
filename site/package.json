@@ -1,6 +1,6 @@
 {
-  "name": "dqn-flappy-bird-site",
-  "description": "Public website for the DQN Flappy Bird reinforcement learning experiment. Generated with Eleventy.",
+  "name": "rl-flappy-bird-site",
+  "description": "Public website for the RL Flappy Bird reinforcement learning project. Generated with Eleventy.",
   "version": "1.0.0",
   "private": true,
   "type": "module",

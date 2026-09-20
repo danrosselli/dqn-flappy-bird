@@ -1,18 +1,19 @@
 ---
 layout: layouts/section.njk
 title: The Project
-description: What DQN Flappy Bird is, why it exists, and how it evolves — an ongoing reinforcement learning experiment documented as a public lab notebook.
+description: What RL Flappy Bird is, why it exists, and how it evolves — an ongoing reinforcement learning experiment documented as a public lab notebook.
 section: project
 keywords: ["project", "open source", "lab notebook", "reinforcement learning project"]
 ---
 
 ## What is this?
 
-**DQN Flappy Bird** is a personal research and learning experiment. A reinforcement
-learning agent — a Deep Q-Network — learns to play Flappy Bird autonomously, and the
-whole process happens **in the browser**: the game (Phaser 3), the neural network
-(TensorFlow.js), the training loop, and the persistence layer (IndexedDB) all live
-client-side, in a single tab.
+**RL Flappy Bird** is a personal research and learning experiment. A reinforcement
+learning agent learns to play Flappy Bird autonomously, and the whole process happens
+**in the browser**: the game (Phaser 3), the neural networks (TensorFlow.js), the
+training loops, and the persistence layer (IndexedDB) all live client-side, in a single
+tab. The project began with Deep Q-Learning and now spans value-based and policy-based
+methods — DQN, REINFORCE, Actor-Critic, and PPO.
 
 There is no pre-trained model shipped with the project. Open the page and the agent
 starts naive — flapping at random, dying immediately — and improves as episodes
@@ -28,7 +29,7 @@ Flappy Bird is close to an ideal laboratory environment for reinforcement learni
 - **Immediate, unambiguous feedback.** Passing a pipe is success; touching anything is
   death. Credit assignment is clean.
 - **Episodic structure.** Each life is a self-contained episode, which maps naturally
-  onto Q-learning.
+  onto reinforcement learning.
 - **It punishes naivety.** A random agent dies in seconds, so improvement is visible
   and measurable.
 
@@ -63,7 +64,7 @@ signal. The agent has to discover, through trial and error, *when* flapping is a
 idea. That discovery process is the interesting part, and it is exactly what this site
 documents.
 
-## Why DQN?
+## Why DQN first?
 
 Q-learning is the classical algorithm for learning action values, but its table-based
 form cannot represent a continuous state space. **Deep Q-Learning** replaces the table
@@ -77,6 +78,10 @@ DQN also brings the two stabilizing ideas that made it famous, both implemented 
   re-sampled for training, breaking the correlation between consecutive frames.
 - **A target network** — a frozen copy of the network provides stable regression
   targets, synced every 1,000 training steps.
+
+DQN is the starting point, not the whole story. Later experiments replace the
+value-based approach with policy-gradient methods — REINFORCE, Actor-Critic, and PPO —
+to compare how each family learns the same environment.
 
 ## The goal
 
@@ -107,5 +112,5 @@ The agent is learning. The project is learning with it.
 
 **Daniel Rosselli** ([@danrosselli](https://github.com/danrosselli)) — designed, built,
 and trains the agent. This is a personal learning project: questions, corrections, and
-ideas are welcome as [issues](https://github.com/danrosselli/dqn-flappy-bird/issues)
+ideas are welcome as [issues](https://github.com/danrosselli/rl-flappy-bird/issues)
 on the repository.
