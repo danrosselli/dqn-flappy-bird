@@ -20,6 +20,7 @@ export const ACTION_SIZE = 2;
 
 export const gamma = 0.99;
 export const LEARNING_RATE = 0.003;
+export const MAX_TRAJECTORY = 10000;
 
 const POLICY_EPSILON = 1e-7;
 
@@ -31,6 +32,34 @@ export class PolicyGradientAgent {
     this.trainingInProgress = false;
     this.lastTrainingLoss = null;
     this.lastEpisodeSteps = 0;
+  }
+
+  resetEpisode() {
+    this.trajectory = [];
+    this.lastEpisodeSteps = 0;
+  }
+
+  /**
+   * Keeps only the most recent MAX_TRAJECTORY steps.
+   *
+   * When the window is full, the oldest step (the first element) is
+   * dropped each time a new step arrives, so `trajectory` is always
+   * the last 10k steps of the episode in chronological order.
+   *
+   * shift() is O(n), but on a 10k array at ~60 steps/s this is a few
+   * hundred thousand pointer moves per second — negligible compared
+   * to the model predict() already done on every game frame.
+   */
+  recordStep(state, action, reward) {
+    if (this.trajectory.length >= MAX_TRAJECTORY) {
+      this.trajectory.shift();
+    }
+
+    this.trajectory.push({
+      state: [...state],
+      action,
+      reward
+    });
   }
 
   createModel() {
@@ -61,19 +90,6 @@ export class PolicyGradientAgent {
     });
 
     return model;
-  }
-
-  resetEpisode() {
-    this.trajectory = [];
-    this.lastEpisodeSteps = 0;
-  }
-
-  recordStep(state, action, reward) {
-    this.trajectory.push({
-      state: [...state],
-      action,
-      reward
-    });
   }
 
   /**
