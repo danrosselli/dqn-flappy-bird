@@ -121,7 +121,7 @@ layout: layouts/base.njk
         {% else %}
         <p class="todo-line">No <code>experiment.json</code> yet. The schema is defined in <code>experiments/README.md</code>.</p>
         <dl class="spec-list">
-          <div class="spec-row"><dt>algorithm</dt><dd>DQN (current implementation)</dd></div>
+          <div class="spec-row"><dt>algorithm</dt><dd>reinforcement learning (see experiment.json)</dd></div>
           <div class="spec-row"><dt>gamma</dt><dd>{{ impl.training.gamma }}</dd></div>
           <div class="spec-row"><dt>ε decay</dt><dd>{{ impl.training.epsilonDecay }}</dd></div>
           <div class="spec-row"><dt>batch size</dt><dd>{{ impl.training.batchSize }}</dd></div>

@@ -2,8 +2,8 @@
    Horizontal data-flow strip:
    STATE → NETWORK → Q VALUES → ACTION → GAME → REWARD → MEMORY → TRAIN
    ============================================================ #}
-{% set stages = ["State", "Network", "Q values", "Action", "Game", "Reward", "Memory", "Train"] %}
-<div class="pipeline" role="img" aria-label="Data flow: state, network, Q-values, action, game, reward, memory, train — in a continuous loop.">
+{% set stages = ["State", "Network", "Values / Policy", "Action", "Game", "Reward", "Memory", "Train"] %}
+<div class="pipeline" role="img" aria-label="Data flow: state, network, values or policy, action, game, reward, memory, train — in a continuous loop.">
   <ol class="pipeline-track">
     {% for stage in stages %}
     <li class="pipeline-stage" style="--i: {{ loop.index0 }}">

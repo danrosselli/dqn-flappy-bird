@@ -10,12 +10,13 @@ layout: layouts/base.njk
   <div class="hero-main" data-reveal>
     <p class="kicker">
       <span class="kicker-rule" aria-hidden="true"></span>
-      Deep Q-Learning · in-browser reinforcement learning
+      Reinforcement learning · in-browser, from DQN to PPO
     </p>
     <h1>Teaching an agent<br>to play Flappy&nbsp;Bird.</h1>
     <p class="lede">
-      A continuous learning experiment. A neural network plays, crashes, stores the
-      experience, updates itself, and tries again — every frame, entirely in the browser.
+      A continuous learning experiment. A neural network plays, crashes, learns from the
+      outcome, and tries again — every frame, entirely in the browser. The project spans
+      value-based and policy-based reinforcement learning.
     </p>
     <div class="hero-ctas">
       <a class="btn btn--primary" href="{{ '/how-it-works/' | url }}">How it works</a>
@@ -25,7 +26,7 @@ layout: layouts/base.njk
     <ul class="hero-stack" aria-label="Technology stack">
       <li>Phaser 3.90</li>
       <li>TensorFlow.js 4.22</li>
-      <li>DQN</li>
+      <li>DQN · REINFORCE · Actor-Critic · PPO</li>
       <li>IndexedDB persistence</li>
     </ul>
   </div>
@@ -77,9 +78,10 @@ layout: layouts/base.njk
       <span class="card-num" aria-hidden="true">02</span>
       <h3>The agent</h3>
       <p>
-        A Deep Q-Network running on TensorFlow.js. It sees 8 normalized numbers,
-        outputs two Q-values — <em>idle</em> or <em>flap</em> — and acts once per frame.
-        Roughly {{ impl.network.totalParams | num }} parameters, no discretization.
+        A neural network running on TensorFlow.js. It sees 8 normalized numbers and acts
+        once per frame. Depending on the experiment, it either scores each action with
+        Q-values (value-based, DQN) or outputs a probability distribution over actions
+        (policy-based, REINFORCE / Actor-Critic / PPO).
       </p>
     </article>
     <article class="card" data-reveal>
@@ -106,9 +108,9 @@ layout: layouts/base.njk
       <h2>State in. Action out.<br>Reward closes the loop.</h2>
       <p>
         Once per frame the environment hands the agent an 8-value state — distances,
-        velocity, gap geometry, world speed. The network answers with two Q-values,
-        the agent picks the better action, and the resulting reward is stored as
-        experience. Batches of that experience train the network against the Bellman target.
+        velocity, gap geometry, world speed. The network answers with an action, and the
+        resulting reward closes the loop. Value-based agents learn from Q-values and a
+        Bellman target; policy-based agents learn directly from returns and advantages.
       </p>
       <p>
         On death the brain is saved to IndexedDB and a new generation starts
@@ -117,6 +119,7 @@ layout: layouts/base.njk
       <p class="section-more"><a href="{{ '/how-it-works/' | url }}">The full mechanism <span aria-hidden="true">→</span></a></p>
     </div>
     <div class="split-figure" data-reveal>
+      {% set caption = "The DQN baseline loop. Policy-gradient experiments replace the replay memory with episodic or batched updates." %}
       {% include "components/loop-diagram.njk" %}
     </div>
   </div>
@@ -129,12 +132,12 @@ layout: layouts/base.njk
   <div class="split split--flip">
     <div class="split-copy" data-reveal>
       {{ kicker("03 · The network") }}
-      <h2>Eight numbers in.<br>Two Q-values out.</h2>
+      <h2>Eight numbers in.<br>An action out.</h2>
       <p>
-        The policy network is a fully-connected stack —
-        <strong>8 → 64 → 64 → 2</strong> — trained with Adam on mean-squared
-        error. A frozen target network, synced every {{ impl.training.targetUpdateFreq | num }} steps,
-        keeps the bootstrapped targets stable.
+        Every agent shares the same compact fully-connected backbone —
+        <strong>8 → 64 → 64 → 2</strong> — trained with Adam. The output layer defines the
+        family: a linear head produces Q-values (DQN), while a softmax head produces action
+        probabilities (REINFORCE, Actor-Critic, PPO).
       </p>
       <div class="chip-row" role="list" aria-label="Network facts">
         <span class="chip" role="listitem">{{ impl.network.totalParams | num }} params</span>
@@ -157,14 +160,14 @@ layout: layouts/base.njk
   <div class="split">
     <div class="split-copy" data-reveal>
       {{ kicker("04 · Training") }}
-      <h2>Exploration decays.<br>Experience accumulates.</h2>
+      <h2>Exploration gives way<br>to exploitation.</h2>
       <p>
-        The agent starts curious — ε = {{ impl.training.epsilonStart }}, mostly random
-        (but flap-biased) actions — and anneals toward pure exploitation.
-        Every transition feeds a {{ (impl.memory.legacySize / 1000) | round }}k-transition replay memory,
-        sampled in batches of {{ impl.training.batchSize }} every {{ impl.training.trainThrottle }} steps.
+        The agent starts curious and gradually commits to what it has learned. Value-based
+        agents explore with ε-greedy actions and learn from a replay memory sampled in
+        batches; policy-based agents sample directly from their policy and update from
+        episode returns, advantages, or a clipped objective.
       </p>
-      <div class="chip-row" role="list" aria-label="Training hyperparameters">
+      <div class="chip-row" role="list" aria-label="DQN baseline hyperparameters">
         <span class="chip" role="listitem">ε {{ impl.training.epsilonStart }} → {{ impl.training.epsilonMin }}</span>
         <span class="chip" role="listitem">decay {{ impl.training.epsilonDecay }}</span>
         <span class="chip" role="listitem">batch {{ impl.training.batchSize }}</span>
@@ -239,9 +242,9 @@ layout: layouts/base.njk
       <p class="kicker kicker--light"><span class="kicker-rule" aria-hidden="true"></span>07 · Live demo</p>
       <h2>Watch the agent learn — live.</h2>
       <p>
-        The demo is the real thing: the same Phaser game and the same DQN agent from
-        this repository, training itself in your browser tab. Progress persists locally —
-        come back later and the agent remembers.
+        The demo is the real thing: the same Phaser game and the same reinforcement
+        learning agents from this repository, training themselves in your browser tab.
+        Progress persists locally — come back later and the agent remembers.
       </p>
       <a class="btn btn--light" href="{{ '/demo/' | url }}">Open the live demo</a>
     </div>
